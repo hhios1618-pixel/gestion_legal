@@ -1,9 +1,9 @@
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
-import ComoSaberDicom from "./components/ComoSaberDicom"; // <-- 1. Importamos el nuevo componente
+import ComoSaberDicom from "./components/ComoSaberDicom";
 import TrustBar from "./components/TrustBar";
 import SocialProof from "./components/SocialProof";
-import Benefits from "./components/Benefits";
+import Benefits from "./components/Benefits"; // Este es 'Metodología'
 import ResultsGrid from "./components/ResultsGrid";
 import Guarantee from "./components/Guarantee";
 import FAQPreview from "./components/FAQPreview";
@@ -15,17 +15,31 @@ export default function HomePage() {
       <Navbar />
       <main>
         <Hero />
-        {/* --- 2. Aquí añadimos la nueva sección --- */}
+        {/* Los IDs deben coincidir con los del Navbar */}
         <ComoSaberDicom /> 
-        {/* ----------------------------------------- */}
         <TrustBar />
         <SocialProof />
-        <Benefits />
-        <ResultsGrid />
-        <Guarantee />
-        <FAQPreview />
+        
+        <section id="metodologia">
+          <Benefits />
+        </section>
+
+        <section id="resultados">
+          <ResultsGrid />
+        </section>
+
+        <section id="garantia">
+          <Guarantee />
+        </section>
+
+        <section id="faq">
+          <FAQPreview />
+        </section>
       </main>
-      <Footer />
+
+      <footer id="contacto">
+        <Footer />
+      </footer>
     </>
   );
 }
