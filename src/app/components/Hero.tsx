@@ -70,7 +70,7 @@ export default function Hero() {
           {/* Nivel 1: Pre-título */}
           <motion.div variants={lineVariants}>
             <p className="mb-4 font-semibold tracking-widest text-slate-300">
-              DEUDACERO | ABOGADOS
+              DEUDASCERO | ABOGADOS
             </p>
           </motion.div>
           
@@ -158,3 +158,5 @@ export default function Hero() {
     </>
   );
 }
+
+////////////////////para cambio de nombre/////
