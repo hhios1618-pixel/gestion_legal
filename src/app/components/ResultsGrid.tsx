@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { CheckCircle, Scale, Archive, FileText } from 'lucide-react';
+import { CheckCircle, Scale, Archive, FileText, Plus, Minus } from 'lucide-react';
 
 // --- 1. Definiciones de Tipos (Completas y Seguras) ---
 type CaseStatus = "success" | "resolved" | "closed";
@@ -64,23 +64,22 @@ const statusConfig: Record<CaseStatus, StatusConfig> = {
   closed: { label: "Caso Cerrado", color: "text-indigo-400", bg: "bg-indigo-500/10", icon: Archive }
 };
 
-const panelVariants: Variants = {
-  hidden: { opacity: 0, y: 15 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
-  exit: { opacity: 0, y: -15, transition: { duration: 0.2, ease: 'easeIn' } }
+const containerVariants: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.2, delayChildren: 0.3 } }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
 };
 
 // --- Componente Principal ---
 export default function ResultsGrid() {
-  const [selected, setSelected] = useState(0);
-  const activeCase = CASES[selected];
-  const activeConfig = statusConfig[activeCase.status];
-  const ActiveIcon = activeConfig.icon;
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(0);
 
   return (
-    <section className="relative overflow-hidden bg-slate-900 py-24 sm:py-32">
-      <div className="absolute inset-0 bg-grid-slate-800 [mask-image:linear-gradient(to_bottom,white_5%,transparent_50%)]"></div>
-      
+    <section className="bg-slate-900 py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
@@ -91,73 +90,35 @@ export default function ResultsGrid() {
         >
           <h2 className="text-base font-semibold leading-7 text-blue-400">Resultados Verificables</h2>
           <p className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Nuestro Historial de Expedientes
+            Línea de Tiempo de Victorias Legales
           </p>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-            La transparencia es un pilar de nuestra firma. Explore una selección de nuestros casos para entender la rigurosidad y la eficacia de nuestro trabajo legal.
+          <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+            Nuestro historial no es una lista, es una cronología de éxito. Cada punto en esta línea representa un caso resuelto y la tranquilidad recuperada de un cliente. Explore los expedientes para ver nuestra metodología en acción.
           </p>
         </motion.div>
 
-        <div className="mt-16 grid grid-cols-1 gap-8 lg:grid-cols-12">
-          {/* Panel de Selección de Expedientes */}
-          <div className="flex flex-col gap-2 lg:col-span-4">
-            {CASES.map((caseItem, index) => (
-              <CaseSelector 
-                key={caseItem.caseId} 
-                caseData={caseItem} 
-                isSelected={selected === index} 
-                onClick={() => setSelected(index)}
-              />
-            ))}
-          </div>
-
-          {/* Panel de Visualización del Expediente */}
-          <div className="lg:col-span-8">
-            <div className="relative h-full w-full rounded-2xl bg-slate-800/50 p-8 shadow-2xl ring-1 ring-white/10 backdrop-blur-lg">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={selected}
-                  variants={panelVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-blue-400">Expediente N°: {activeCase.caseId}</p>
-                      <h3 className="mt-1 text-xl font-bold text-white">{activeCase.headline}</h3>
-                    </div>
-                    <div className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${activeConfig.bg} ${activeConfig.color}`}>
-                        <ActiveIcon className="h-4 w-4" />
-                        {activeConfig.label}
-                    </div>
-                  </div>
-                  
-                  <div className="mt-6 border-t border-white/10 pt-6">
-                    <h4 className="font-semibold text-slate-200">Análisis del Fallo</h4>
-                    <p className="mt-2 text-slate-300 leading-relaxed">{activeCase.detail}</p>
-                  </div>
-
-                  <div className="mt-6 grid grid-cols-2 gap-6 border-t border-white/10 pt-6">
-                    <div>
-                      <p className="text-sm text-slate-400">Plazo de Resolución</p>
-                      <p className="mt-1 font-semibold text-white">{activeCase.timeline}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-400">Resultado Clave</p>
-                      <p className="mt-1 font-semibold text-white">{activeCase.metric}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-6 border-t border-white/10 pt-6">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-6 w-6 text-slate-500" />
-                      <p className="text-sm text-slate-400">Toda la documentación y sentencias de este caso están debidamente archivadas y disponibles para consulta de nuestros clientes.</p>
-                    </div>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-            </div>
+        {/* Línea de Tiempo Interactiva */}
+        <div className="mt-20">
+          <div className="relative">
+            {/* La línea de tiempo horizontal */}
+            <div className="absolute top-5 left-0 h-0.5 w-full bg-slate-700"></div>
+            
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.2 }}
+              className="relative grid grid-cols-1 gap-12 lg:grid-cols-3"
+            >
+              {CASES.map((caseItem, index) => (
+                <TimelineItem
+                  key={caseItem.caseId}
+                  caseData={caseItem}
+                  isExpanded={expandedIndex === index}
+                  onClick={() => setExpandedIndex(expandedIndex === index ? null : index)}
+                />
+              ))}
+            </motion.div>
           </div>
         </div>
       </div>
@@ -165,24 +126,60 @@ export default function ResultsGrid() {
   );
 }
 
-// --- Sub-componente para el Selector de Casos ---
-function CaseSelector({ caseData, isSelected, onClick }: { caseData: CaseResult, isSelected: boolean, onClick: () => void }) {
+// --- Sub-componente para cada item de la Línea de Tiempo ---
+function TimelineItem({ caseData, isExpanded, onClick }: { caseData: CaseResult, isExpanded: boolean, onClick: () => void }) {
   const config = statusConfig[caseData.status];
   const Icon = config.icon;
+
   return (
-    <motion.button
-      onClick={onClick}
-      className={`relative w-full rounded-lg p-4 text-left transition-colors duration-200 ring-1 ${isSelected ? 'bg-blue-900/50 ring-blue-500' : 'bg-slate-800/50 ring-transparent hover:bg-slate-800/80'}`}
-    >
-      <div className="flex items-start gap-4">
-        <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${config.bg}`}>
-          <Icon className={`h-4 w-4 ${config.color}`} />
-        </div>
-        <div>
-          <p className="font-semibold text-white">{caseData.headline}</p>
-          <p className="text-sm text-slate-400">{caseData.summary}</p>
+    <motion.div variants={itemVariants} className="relative flex flex-col items-start">
+      {/* Nodo en la línea de tiempo */}
+      <div className="relative z-10">
+        <div className={`h-10 w-10 rounded-full grid place-items-center ${isExpanded ? 'bg-blue-500' : 'bg-slate-800 ring-4 ring-slate-900'}`}>
+          <Icon className={`h-5 w-5 ${isExpanded ? 'text-white' : 'text-slate-400'}`} />
         </div>
       </div>
-    </motion.button>
+
+      {/* Tarjeta de Contenido */}
+      <motion.div 
+        layout
+        className="mt-6 w-full rounded-xl bg-slate-800/80 ring-1 ring-white/10"
+        transition={{ layout: { duration: 0.4, ease: "easeOut" } }}
+      >
+        <div className="p-6">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-white">{caseData.headline}</h3>
+            <button onClick={onClick} className="flex-shrink-0 grid h-7 w-7 place-items-center rounded-full bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-white transition-all">
+              {isExpanded ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            </button>
+          </div>
+          
+          <AnimatePresence initial={false}>
+            {isExpanded && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                animate={{ opacity: 1, height: 'auto', marginTop: '1.5rem' }}
+                exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+              >
+                <div className="border-t border-white/10 pt-6">
+                  <p className="text-slate-300">{caseData.detail}</p>
+                  <div className="mt-6 grid grid-cols-2 gap-4 rounded-lg bg-slate-900/50 p-4 ring-1 ring-white/10">
+                    <div>
+                      <p className="text-xs text-slate-400">Plazo Resolución</p>
+                      <p className="font-semibold text-white">{caseData.timeline}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Resultado Clave</p>
+                      <p className="font-semibold text-white">{caseData.metric}</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
