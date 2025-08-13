@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "DeudaCero — Sal de DICOM con respaldo legal",
+  title: "DeudasCero — Sal de DICOM con respaldo legal",
   description: "Soluciones legales para eliminar DICOM y ordenar tus deudas, con trazabilidad y asesoría experta.",
 };
 

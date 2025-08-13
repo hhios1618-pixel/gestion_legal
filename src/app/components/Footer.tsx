@@ -29,7 +29,7 @@ export default function Footer() {
           {/* Columna de la Marca */}
           <div className="space-y-4">
              <Link href="/" className="text-2xl font-extrabold tracking-tight text-slate-900">
-              DEUDACERO
+              DEUDASCERO
             </Link>
             <p className="text-sm leading-6 text-slate-600">
               Defensa legal experta para la eliminación de deudas. Seriedad, claridad y resultados garantizados.
@@ -73,7 +73,7 @@ export default function Footer() {
                   </li>
                   <li className="flex items-start gap-3">
                     <Mail className="h-5 w-5 flex-shrink-0 text-slate-500 mt-0.5" />
-                    <span className="text-sm leading-6 text-slate-600">contacto@deudacero.cl</span>
+                    <span className="text-sm leading-6 text-slate-600">contacto@deudascero.cl</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <Clock className="h-5 w-5 flex-shrink-0 text-slate-500 mt-0.5" />
@@ -89,7 +89,7 @@ export default function Footer() {
       {/* 3. Barra de Copyright */}
       <div className="border-t border-slate-200 bg-white py-8">
         <p className="text-center text-xs leading-5 text-slate-500">
-          © {new Date().getFullYear()} DeudaCero SpA. Todos los derechos reservados.
+          © {new Date().getFullYear()} DeudasCero SpA. Todos los derechos reservados.
         </p>
       </div>
     </footer>

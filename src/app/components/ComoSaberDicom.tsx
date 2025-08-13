@@ -155,7 +155,7 @@ export default function ComoSaberDicom() {
                 {/* AQUÍ VA LA IMAGEN DE LOS ABOGADOS */}
                 <img 
                    src="https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=1887&auto=format&fit=crop" // Imagen de placeholder, reemplazar
-                   alt="Equipo de abogados expertos de DeudaCero"
+                   alt="Equipo de abogados expertos de DeudasCero"
                    className="h-full w-full rounded-2xl object-cover shadow-xl"
                 />
               </div>

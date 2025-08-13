@@ -59,9 +59,7 @@ export default function Guarantee() {
               variants={itemVariants}
               className="mt-4 text-lg text-slate-600"
             >
-              Si no podemos eliminar tu deuda o sacarte de DICOM, no pagas.
-              Términos claros y sin letra chica. Tu tranquilidad es nuestra
-              prioridad.
+              Recuperamos tu historial y tu tranquilidad financiera con soluciones legales claras y efectivas. Sin letra chica, solo resultados reales
             </motion.p>
           </div>
 
