@@ -13,7 +13,7 @@ const faqs = [
   },
   {
     q: "¿Existen costos iniciales para evaluar mi caso?",
-    a: "No. La evaluación de su caso es completamente gratuita y sin compromiso. Operamos bajo una política de éxito: nuestros honorarios están condicionados a la eliminación efectiva de su deuda de los registros comerciales.",
+    a: "No. La evaluación de su caso es completamente gratuita y sin compromiso.",
   },
   {
     q: "¿Ofrecen sus servicios legales en todo el territorio nacional?",
