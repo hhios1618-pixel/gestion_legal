@@ -1,13 +1,21 @@
+// src/app/page.tsx
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import ComoSaberDicom from "./components/ComoSaberDicom";
 import TrustBar from "./components/TrustBar";
 import SocialProof from "./components/SocialProof";
-import Benefits from "./components/Benefits"; // Este es 'Metodología'
+import Benefits from "./components/Benefits"; // 'Metodología'
 import ResultsGrid from "./components/ResultsGrid";
 import Guarantee from "./components/Guarantee";
 import FAQPreview from "./components/FAQPreview";
 import Footer from "./components/Footer";
+import Chatbot from "./components/Chatbot"; // 👈 flotante
+
+export const metadata = {
+  title: "DeudasCero — Defensa legal y evaluación sin costo",
+  description:
+    "Defensa legal experta para eliminar deudas. Cada caso se evalúa de forma particular. Agenda tu evaluación.",
+};
 
 export default function HomePage() {
   return (
@@ -15,11 +23,12 @@ export default function HomePage() {
       <Navbar />
       <main>
         <Hero />
+
         {/* Los IDs deben coincidir con los del Navbar */}
-        <ComoSaberDicom /> 
+        <ComoSaberDicom />
         <TrustBar />
         <SocialProof />
-        
+
         <section id="metodologia">
           <Benefits />
         </section>
@@ -40,6 +49,9 @@ export default function HomePage() {
       <footer id="contacto">
         <Footer />
       </footer>
+
+      {/* Bot flotante (abre ventana de chat conectada a /api/chat) */}
+      <Chatbot />
     </>
   );
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
-import { Phone, Mail, Clock, Linkedin, ShieldCheck, X } from "lucide-react";
+import { Phone, Mail, Clock, Linkedin, ShieldCheck, X, AlertTriangle } from "lucide-react";
 
 export default function Footer() {
   const [open, setOpen] = useState(false);
@@ -12,11 +12,8 @@ export default function Footer() {
   // Bloquear scroll del body cuando el modal está abierto
   useEffect(() => {
     const original = document.body.style.overflow;
-    if (open) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = original;
-    }
+    if (open) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = original;
     return () => {
       document.body.style.overflow = original;
     };
@@ -33,14 +30,12 @@ export default function Footer() {
 
   // Cerrar al hacer click fuera
   const onBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (dialogRef.current && !dialogRef.current.contains(e.target as Node)) {
-      setOpen(false);
-    }
+    if (dialogRef.current && !dialogRef.current.contains(e.target as Node)) setOpen(false);
   };
 
   return (
     <footer className="bg-white">
-      {/* 1. Sección de Llamada a la Acción (CTA) */}
+      {/* 1. CTA */}
       <div className="bg-slate-50">
         <div className="mx-auto max-w-7xl px-6 py-12 lg:flex lg:items-center lg:justify-between lg:px-8">
           <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
@@ -59,10 +54,10 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* 2. Contenido Principal del Footer */}
+      {/* 2. Contenido Principal */}
       <div className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
         <div className="xl:grid xl:grid-cols-4 xl:gap-8">
-          {/* Columna de la Marca */}
+          {/* Marca */}
           <div className="space-y-4">
             <Link href="/" className="text-2xl font-extrabold tracking-tight text-slate-900">
               DEUDASCERO
@@ -77,47 +72,23 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Columnas de Links */}
+          {/* Links */}
           <div className="mt-16 grid grid-cols-2 gap-8 xl:col-span-3 xl:mt-0">
             <div className="md:grid md:grid-cols-2 md:gap-8">
               <div>
                 <h4 className="text-sm font-semibold leading-6 text-slate-900">Recursos</h4>
                 <ul role="list" className="mt-4 space-y-3">
-                  <li>
-                    <Link href="/casos-de-exito" className="text-sm leading-6 text-slate-600 hover:text-blue-700">
-                      Casos de Éxito
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/blog" className="text-sm leading-6 text-slate-600 hover:text-blue-700">
-                      Blog Jurídico
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/faq" className="text-sm leading-6 text-slate-600 hover:text-blue-700">
-                      Preguntas Frecuentes
-                    </Link>
-                  </li>
+                  <li><Link href="/casos-de-exito" className="text-sm leading-6 text-slate-600 hover:text-blue-700">Casos de Éxito</Link></li>
+                  <li><Link href="/blog" className="text-sm leading-6 text-slate-600 hover:text-blue-700">Blog Jurídico</Link></li>
+                  <li><Link href="/faq" className="text-sm leading-6 text-slate-600 hover:text-blue-700">Preguntas Frecuentes</Link></li>
                 </ul>
               </div>
               <div className="mt-10 md:mt-0">
                 <h4 className="text-sm font-semibold leading-6 text-slate-900">Legal</h4>
                 <ul role="list" className="mt-4 space-y-3">
-                  <li>
-                    <Link href="/terminos" className="text-sm leading-6 text-slate-600 hover:text-blue-700">
-                      Términos y Condiciones
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/privacidad" className="text-sm leading-6 text-slate-600 hover:text-blue-700">
-                      Política de Privacidad
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/sobre-nosotros" className="text-sm leading-6 text-slate-600 hover:text-blue-700">
-                      Sobre el Estudio
-                    </Link>
-                  </li>
+                  <li><Link href="/terminos" className="text-sm leading-6 text-slate-600 hover:text-blue-700">Términos y Condiciones</Link></li>
+                  <li><Link href="/privacidad" className="text-sm leading-6 text-slate-600 hover:text-blue-700">Política de Privacidad</Link></li>
+                  <li><Link href="/sobre-nosotros" className="text-sm leading-6 text-slate-600 hover:text-blue-700">Sobre el Estudio</Link></li>
                 </ul>
               </div>
             </div>
@@ -144,21 +115,32 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Enlace para abrir el modal legal */}
+        {/* Enlace modal legal */}
         <div className="mt-10">
           <button
-            onClick={() => {
-              setAccepted(false);
-              setOpen(true);
-            }}
+            onClick={() => { setAccepted(false); setOpen(true); }}
             className="text-xs text-slate-500 underline underline-offset-4 hover:text-blue-700"
           >
             Aviso legal y privacidad
           </button>
         </div>
+
+        {/* 🔔 DISCLAIMER SITE-WIDE */}
+        <div className="mt-10 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-600" aria-hidden />
+            <p className="text-xs leading-5 text-amber-900">
+              <strong>Importante:</strong> toda la información publicada en este sitio (plazos, procesos, resultados y
+              costos) corresponde a ejemplos y promedios referenciales. Cada caso es evaluado de manera particular y los
+              resultados dependen de los antecedentes y circunstancias específicas del cliente. <strong>No garantizamos
+              tiempos ni resultados</strong> idénticos para todos los casos ni la resolución de deudas en un plazo determinado.
+              Para una propuesta y estimación formal, es imprescindible una evaluación individual.
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* 3. Barra de Copyright */}
+      {/* 3. Copyright */}
       <div className="border-t border-slate-200 bg-white py-8">
         <p className="text-center text-xs leading-5 text-slate-500">
           © {new Date().getFullYear()} DeudasCero SpA. Todos los derechos reservados.
@@ -196,8 +178,15 @@ export default function Footer() {
               </button>
             </div>
 
-            {/* Body (scrollable) */}
+            {/* Body */}
             <div className="max-h-[70vh] overflow-y-auto px-6 py-5 text-sm leading-relaxed text-white/90">
+              {/* Nota resumida al inicio */}
+              <div className="mb-4 rounded-lg border border-white/15 bg-white/5 p-3 text-xs text-white/80">
+                <strong>Aviso:</strong> la información del sitio (plazos, procesos y resultados) es referencial y puede
+                variar caso a caso. No constituye garantía de tiempos ni de resultados determinados. Toda propuesta
+                requiere evaluación individual.
+              </div>
+
               <Section n="1. Objeto">
                 Este documento regula el uso del formulario de contacto/disposición de datos personales disponible en el
                 sitio web <strong>www.deudascero.cl</strong> (en adelante, el “Sitio”), así como el tratamiento y
@@ -221,27 +210,8 @@ export default function Footer() {
               </Section>
 
               <Section n="4. Derechos de los Usuarios">
-                De acuerdo con la Ley N° 19.628 sobre Protección de la Vida Privada, el usuario podrá ejercer en
-                cualquier momento los siguientes derechos:
-                <ul className="mt-2 list-disc pl-6 marker:text-white/60">
-                  <li>
-                    <strong>Derecho de acceso:</strong> Conocer qué datos suyos han sido almacenados y cómo se utilizan.
-                  </li>
-                  <li>
-                    <strong>Derecho de rectificación:</strong> Solicitar la modificación de datos incorrectos, inexactos
-                    o desactualizados.
-                  </li>
-                  <li>
-                    <strong>Derecho de cancelación o eliminación:</strong> Pedir la eliminación de sus datos cuando
-                    estime que no están siendo tratados conforme a la ley.
-                  </li>
-                  <li>
-                    <strong>Derecho de oposición:</strong> Rechazar el uso de sus datos para determinados fines.
-                  </li>
-                </ul>
-                Las solicitudes para ejercer estos derechos deberán dirigirse al correo electrónico:
-                <span className="whitespace-nowrap"> <strong>[privacidad@tusitio.cl]</strong></span>, indicando
-                claramente la petición y adjuntando copia de su cédula de identidad.
+                De acuerdo con la Ley N° 19.628, el usuario podrá ejercer en cualquier momento sus derechos de acceso,
+                rectificación, cancelación y oposición, escribiendo a <strong>privacidad@tusitio.cl</strong>.
               </Section>
 
               <Section n="5. Obligaciones del Usuario">
@@ -253,33 +223,24 @@ export default function Footer() {
               </Section>
 
               <Section n="6. Protección y Seguridad de los Datos">
-                Nuestra empresa declara que los datos personales proporcionados serán tratados con estricta
-                confidencialidad y protegidos mediante medidas técnicas, administrativas y organizativas adecuadas para
-                garantizar su seguridad e impedir el acceso, uso o divulgación no autorizada. Nos comprometemos a no
-                vender, arrendar ni compartir la información con terceros, salvo obligación legal o requerimiento de
-                autoridad competente.
+                Tratamos los datos con confidencialidad y medidas técnicas/organizativas adecuadas; no vendemos ni
+                compartimos la información salvo obligación legal.
               </Section>
 
               <Section n="7. Almacenamiento y Plazo de Conservación">
-                Los datos serán almacenados únicamente durante el tiempo necesario para cumplir con los fines para los
-                que fueron recolectados, o mientras exista una relación activa con el usuario, salvo que la ley exija un
-                plazo mayor.
+                Conservamos los datos solo el tiempo necesario para los fines declarados o según lo exija la ley.
               </Section>
 
               <Section n="8. Modificaciones a este Documento">
-                Nos reservamos el derecho de modificar este documento en cualquier momento. Las modificaciones serán
-                publicadas en el Sitio, y se considerarán vigentes desde su publicación.
+                Podremos actualizar este documento; las modificaciones regirán desde su publicación en el Sitio.
               </Section>
 
               <Section n="9. Legislación Aplicable y Jurisdicción">
-                Este documento se rige por la legislación chilena, en particular por la Ley N° 19.628 sobre Protección
-                de la Vida Privada, la Ley N° 21.096 sobre delitos informáticos y otras normas relacionadas. Cualquier
-                controversia derivada de este documento será sometida a los tribunales ordinarios de justicia de la
-                ciudad de Santiago, Región Metropolitana.
+                Se rige por la legislación chilena. Competencia: tribunales ordinarios de Santiago, RM.
               </Section>
             </div>
 
-            {/* Footer sticky del modal */}
+            {/* Footer modal */}
             <div className="sticky bottom-0 flex items-center justify-between gap-4 border-t border-white/10 bg-white/5 px-6 py-4 backdrop-blur">
               <label className="flex items-center gap-3 text-xs text-white/80">
                 <input
@@ -294,9 +255,7 @@ export default function Footer() {
                 onClick={() => setOpen(false)}
                 disabled={!accepted}
                 className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 ${
-                  accepted
-                    ? "bg-blue-700 hover:bg-blue-800"
-                    : "bg-slate-600/60 cursor-not-allowed"
+                  accepted ? "bg-blue-700 hover:bg-blue-800" : "bg-slate-600/60 cursor-not-allowed"
                 }`}
               >
                 Aceptar y continuar
