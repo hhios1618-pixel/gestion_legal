@@ -1,7 +1,19 @@
 // Archivo: src/app/lib/chatAdapter.ts
-// Reemplaza todo el contenido con este código
 
-type SendOptions = { userEmail?: string; systemPrompt?: string; history?: Array<{role: string; content: string}> };
+type ChatRole = 'user' | 'assistant' | 'system';
+
+type SendOptions = {
+  userEmail?: string;
+  systemPrompt?: string;
+  history?: Array<{ role: ChatRole; content: string }>;
+};
+
+type BotResponse = {
+  conversationId: string;
+  reply: string;
+  leadId?: string | null;
+  leadStatus?: 'inserted' | 'deduped' | 'skipped';
+};
 
 const KEY = 'dc_conversation_id';
 
@@ -10,8 +22,9 @@ export function getConversationId(): string | null {
   return localStorage.getItem(KEY);
 }
 
-export function setConversationId(id: string) {
+export function setConversationId(id: string | null) {
   if (typeof window === 'undefined') return;
+  if (!id) return;
   localStorage.setItem(KEY, id);
 }
 
@@ -20,23 +33,26 @@ export function resetConversation() {
   localStorage.removeItem(KEY);
 }
 
-export async function sendBotMessage(message: string, opts: SendOptions = {}) {
+export async function sendBotMessage(message: string, opts: SendOptions = {}): Promise<BotResponse> {
   const conversationId = getConversationId();
-  
-  // Preparar el payload según el contrato del route.ts
+
   const payload: any = {
     message,
     conversationId: conversationId || null,
   };
 
-  // Agregar systemPrompt si viene
-  if (opts.systemPrompt) {
-    payload.systemPrompt = opts.systemPrompt;
-  }
+  if (opts.systemPrompt) payload.systemPrompt = opts.systemPrompt;
 
-  // Agregar history si viene (esto es lo que usa el route.ts)
   if (opts.history && Array.isArray(opts.history)) {
-    payload.history = opts.history;
+    const safeHistory = opts.history
+      .filter(
+        (m) =>
+          m &&
+          typeof m.content === 'string' &&
+          (m.role === 'user' || m.role === 'assistant' || m.role === 'system')
+      )
+      .map((m) => ({ role: m.role, content: m.content }));
+    if (safeHistory.length) payload.history = safeHistory;
   }
 
   const res = await fetch('/api/bot/message', {
@@ -44,16 +60,18 @@ export async function sendBotMessage(message: string, opts: SendOptions = {}) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Error en la API del bot');
 
-  // Guardar conversationId si es nuevo
+  const json = await res.json();
+
+  if (!res.ok) {
+    throw new Error(json?.error || 'Error en la API del bot');
+  }
+
   if (json.conversationId && json.conversationId !== conversationId) {
     setConversationId(json.conversationId);
   }
-  
-  return json as { conversationId: string; reply: string; leadId?: string };
+
+  return json as BotResponse;
 }
 
 export function extractLeadBlock(text: string): object | null {
@@ -66,33 +84,30 @@ export function extractLeadBlock(text: string): object | null {
   }
 }
 
-// Esta función ya no es necesaria porque el route.ts maneja los leads automáticamente
-// Pero la mantenemos para compatibilidad
-export async function captureLead(payload: object) {
-  console.log('Lead capturado automáticamente por el bot:', payload);
-  return { leadId: 'auto-captured' };
-}
-
-// ✅ CORREGIDO: Función para marcar conversación como exitosa (success)
-export async function saveConversationForReview(conversationId: string | null) {
+/**
+ * Marca una conversación con un estado dado (por defecto, 'success').
+ * Acepta: 'success' | 'needs_review'
+ */
+export async function saveConversationForReview(
+  conversationId: string | null,
+  status: 'success' | 'needs_review' = 'success'
+) {
   if (!conversationId) return;
 
   try {
     const res = await fetch(`/api/conversations/${conversationId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        status: 'success', // ✅ Cambiado a 'success' (valor permitido por el constraint)
-      }),
+      body: JSON.stringify({ status }),
     });
 
     if (!res.ok) {
-      const errorBody = await res.json();
-      console.error('Error al marcar conversación como exitosa:', errorBody.error);
+      const errorBody = await res.json().catch(() => ({}));
+      console.error('Error al actualizar estado de conversación:', errorBody.error || res.statusText);
     } else {
-      console.log(`Conversación ${conversationId} marcada como exitosa.`);
+      console.log(`Conversación ${conversationId} marcada como ${status}.`);
     }
   } catch (error) {
-    console.error('Error de red al marcar conversación:', error);
+    console.error('Error de red al actualizar conversación:', error);
   }
 }

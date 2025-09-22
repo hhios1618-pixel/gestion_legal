@@ -156,80 +156,80 @@ export default async function LeadDetailPage(props: { params: Promise<Params> })
               <InfoRow label="Teléfono" value={lead.phone} icon={<Phone size={14} />} />
               <InfoRow
                 label="Creado"
-                value={lead.created_at ? new Date(lead.created_at).toLocaleString('es-CL') : '—'}
+                value={lead.created_at ? new Date(lead.created_at).toLocaleString('es-CL', { timeZone: 'America/Santiago' }) : '—'}
               />
             </div>
           </section>
 
-            {/* Motivo declarado */}
-            <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-900">
-                <MessageSquare size={16} className="text-zinc-700" /> Motivo declarado por el cliente
-              </h3>
-              <p className="whitespace-pre-wrap text-[15px] leading-6 text-zinc-800">
-                {lead.motivo?.trim() || '— Sin detalle —'}
-              </p>
-            </section>
+          {/* Motivo declarado */}
+          <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-900">
+              <MessageSquare size={16} className="text-zinc-700" /> Motivo declarado por el cliente
+            </h3>
+            <p className="whitespace-pre-wrap text-[15px] leading-6 text-zinc-800">
+              {lead.motivo?.trim() || '— Sin detalle —'}
+            </p>
+          </section>
 
-            {/* Conversación (preview) */}
-            <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-900">
-                <MessageSquare size={16} className="text-zinc-700" /> Conversación (preview)
-              </h3>
+          {/* Conversación (preview) */}
+          <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-900">
+              <MessageSquare size={16} className="text-zinc-700" /> Conversación (preview)
+            </h3>
 
-              {!convo?.messages || (Array.isArray(convo.messages) && convo.messages.length === 0) ? (
-                <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-500">
-                  No hay mensajes vinculados a este lead.
-                </div>
-              ) : (
-                <div className="max-h-72 space-y-3 overflow-auto">
-                  {(convo!.messages as any[]).slice(0, 20).map((m: any, i: number) => {
-                    const isBot = m.role === 'assistant';
-                    return (
-                      <div key={i} className={`flex ${isBot ? 'justify-start' : 'justify-end'}`}>
-                        <div
-                          className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-5 shadow-sm ${
-                            isBot
-                              ? 'bg-zinc-100 text-zinc-900 ring-1 ring-zinc-200'
-                              : 'bg-sky-50 text-sky-900 ring-1 ring-sky-200'
-                          }`}
-                        >
-                          <span className="block text-[10px] uppercase tracking-wide opacity-60">
-                            {m.role}
-                          </span>
-                          <span className="whitespace-pre-wrap">{m.content}</span>
-                        </div>
+            {!convo?.messages || (Array.isArray(convo.messages) && convo.messages.length === 0) ? (
+              <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-500">
+                No hay mensajes vinculados a este lead.
+              </div>
+            ) : (
+              <div className="max-h-72 space-y-3 overflow-auto">
+                {(convo!.messages as any[]).slice(0, 20).map((m: any, i: number) => {
+                  const isBot = m.role === 'assistant';
+                  return (
+                    <div key={i} className={`flex ${isBot ? 'justify-start' : 'justify-end'}`}>
+                      <div
+                        className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-5 shadow-sm ${
+                          isBot
+                            ? 'bg-zinc-100 text-zinc-900 ring-1 ring-zinc-200'
+                            : 'bg-sky-50 text-sky-900 ring-1 ring-sky-200'
+                        }`}
+                      >
+                        <span className="block text-[10px] uppercase tracking-wide opacity-60">
+                          {m.role}
+                        </span>
+                        <span className="whitespace-pre-wrap">{m.content}</span>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
 
-            {/* Notas internas */}
-            <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-900">
-                <StickyNote size={16} className="text-zinc-700" /> Observaciones internas
-              </h3>
-              <form action={saveNotes} className="space-y-3">
-                <textarea
-                  name="notes"
-                  defaultValue={lead.notes ?? ''}
-                  placeholder="Notas del ejecutivo (llamar después, buzón, documentos solicitados, etc.)"
-                  className="w-full min-h-28 rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-800 placeholder:text-zinc-400 outline-none focus:ring-4 focus:ring-sky-100"
-                />
-                <button
-                  type="submit"
-                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
-                >
-                  <Save size={16} /> Guardar notas
-                </button>
-              </form>
-            </section>
+          {/* Notas internas */}
+          <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-900">
+              <StickyNote size={16} className="text-zinc-700" /> Observaciones internas
+            </h3>
+            <form action={saveNotes} className="space-y-3">
+              <textarea
+                name="notes"
+                defaultValue={lead.notes ?? ''}
+                placeholder="Notas del ejecutivo (llamar después, buzón, documentos solicitados, etc.)"
+                className="w-full min-h-28 rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-800 placeholder:text-zinc-400 outline-none focus:ring-4 focus:ring-sky-100"
+              />
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+              >
+                <Save size={16} /> Guardar notas
+              </button>
+            </form>
+          </section>
 
-            {/* Adjuntos del lead */}
-            <AttachmentsCard ownerType="lead" ownerId={lead.id} />
-          </div>
+          {/* Adjuntos del lead */}
+          <AttachmentsCard ownerType="lead" ownerId={lead.id} />
+        </div>
 
         {/* Sidebar acciones */}
         <aside className="h-fit space-y-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
@@ -241,7 +241,7 @@ export default async function LeadDetailPage(props: { params: Promise<Params> })
             <select
               name="status"
               defaultValue={lead.status ?? 'nuevo'}
-              className="w-full rounded-lg border border-zinc-200 bg-white p-2 text-sm text-zinc-800 outline-none focus:ring-4 focus:ring-sky-100 capitalize"
+              className="w-full rounded-lg border border-zinc-200 bg-white p-2 text-sm font-semibold text-zinc-800 outline-none focus:ring-4 focus:ring-sky-100 capitalize"
             >
               {statuses.map((s) => (
                 <option key={s ?? 'nuevo'} value={s ?? 'nuevo'} className="capitalize">

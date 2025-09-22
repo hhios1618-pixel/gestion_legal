@@ -3,37 +3,30 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, Send, X } from "lucide-react";
 import {
-  extractLeadBlock,
-  saveConversationForReview,
-  getConversationId,
-  setConversationId,
   sendBotMessage,
+  saveConversationForReview,
 } from "@/app/lib/chatAdapter";
 
 type Message = { role: "user" | "assistant"; content: string };
 
-// ✅ PROMPT MEJORADO: Enfocado en capturar leads y derivar a ventas
-const SYSTEM_PROMPT = `Eres "LEX", Analista Legal Virtual de DeudaCero Chile. Tu objetivo es CAPTURAR LEADS y derivarlos a nuestro equipo comercial.
+// ================= SYSTEM PROMPT =================
+const SYSTEM_PROMPT = `Eres "LEX", Analista Legal Virtual de DeudaCero (Chile). Tu objetivo es CAPTURAR LEADS y derivarlos a ventas.
 
-MISIÓN: Capturar nombre + contacto (email O teléfono) + motivo, luego derivar a ventas.
-
+OBJETIVO (slot-filling): 1) nombre  2) contacto (email O teléfono)  3) motivo
 REGLAS ESTRICTAS:
-1) Preséntate como LEX de DeudaCero
-2) Mensajes BREVES (máximo 2 líneas)
-3) UNA pregunta por turno
-4) Prioridad: nombre → contacto → motivo
-5) Si ya tienes un dato en el historial, NO lo pidas de nuevo
-6) NO des asesoría gratuita - tu trabajo es CAPTURAR y DERIVAR
-7) Cuando tengas nombre + contacto, di: "Perfecto [nombre], nuestro equipo te contactará pronto para ayudarte con [motivo]. ¿Prefieres que te llamemos o te escribamos?"
+- Preséntate como LEX de DeudaCero.
+- Mensajes BREVES (máx. 2 líneas). UNA pregunta por turno.
+- Si ya tienes un dato en el historial, NO lo pidas de nuevo; reconoce y avanza.
+- Valida contacto:
+  • email con formato válido
+  • phone: solo dígitos (ignora espacios/guiones), longitud 8–15. Si es inválido, pide corrección.
+- NO prometas plazos ni resultados específicos.
+- Cuando tengas (nombre + (email o phone válidos) + motivo), cierra y al FINAL incluye EXACTAMENTE:
+<LEAD>{"name":"...","email":"...","phone":"...","motivo":"..."}</LEAD>
 
-RESPUESTAS TIPO:
-- Sin nombre: "Hola, soy LEX de DeudaCero. Para ayudarte mejor, ¿me dices tu nombre?"
-- Sin contacto: "Gracias [nombre]. ¿Me das tu email o teléfono para que te contactemos?"
-- Sin motivo: "¿Cuál es tu situación con las deudas? ¿DICOM, cobranza, repactación?"
-- Con todo: "Perfecto [nombre], te contactaremos pronto. Nuestros especialistas te darán la mejor solución."
-
-Cuando tengas mínimos (nombre + contacto), agrega:
-<LEAD>{"name":"...", "email":"...", "phone":"...", "motivo":"..."}</LEAD>`;
+EJEMPLOS DE VALIDACIÓN:
+Usuario: "Tomás, 7702888'"
+Tú: "Gracias, Tomás. Ese teléfono parece incompleto. ¿Me lo confirmas con 8 o más dígitos? (o comparte tu correo)"`;
 
 const TypingIndicator = () => (
   <div className="flex justify-start">
@@ -84,7 +77,7 @@ export default function Chatbot() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape" && open) setOpen(false);
-      if (e.key.toLowerCase() === "l" && (e.metaKey || e.ctrlKey)) {
+      if ((e.key === "l" || e.key === "L") && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         toggleOpen();
       }
@@ -117,23 +110,18 @@ export default function Chatbot() {
     setIsTyping(true);
 
     try {
-      // Usar sendBotMessage del chatAdapter corregido
-      const result = await sendBotMessage(text, {
+      const { reply, conversationId, leadId, leadStatus } = await sendBotMessage(text, {
         systemPrompt: SYSTEM_PROMPT,
         history: newHistory.map(m => ({ role: m.role, content: m.content }))
       });
 
-      const reply = result.reply || "";
-      
       setIsTyping(false);
-      setMsgs([...newHistory, { role: "assistant", content: reply }]);
+      setMsgs([...newHistory, { role: "assistant", content: reply || "" }]);
 
-      // ✅ MEJORADO: Marcar como completada solo si se capturó un lead
-      if (result.leadId) {
-        console.log('✅ Lead capturado exitosamente:', result.leadId);
-        await saveConversationForReview(result.conversationId);
+      // Solo marcamos success si realmente insertamos
+      if (leadStatus === 'inserted' && leadId) {
+        await saveConversationForReview(conversationId, 'success');
       }
-
     } catch (e) {
       console.error('Error en el chat:', e);
       setIsTyping(false);

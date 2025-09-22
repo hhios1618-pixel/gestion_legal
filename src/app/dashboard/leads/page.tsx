@@ -42,14 +42,44 @@ function Chip({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default async function LeadsPage() {
-  // query base (últimos 50)
+// ✅ Next.js 15: searchParams es asincrónico
+export default async function LeadsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const status = String(sp?.status ?? '').toLowerCase();
+  const source = String(sp?.source ?? '').toLowerCase();
+  const q = String(sp?.q ?? '').trim();
+
+  // ---- query base con filtros reales ----
+  let query = supabaseAdmin
+    .from('leads')
+    .select('id, short_code, name, email, phone, status, channel, source, created_at')
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (status) {
+    query = query.eq('status', status);
+  }
+  if (source) {
+    query = query.eq('source', source);
+  }
+  if (q) {
+    // búsqueda simple: name/email/phone/short_code (OR)
+    query = query.or(
+      [
+        `name.ilike.%${q}%`,
+        `email.ilike.%${q}%`,
+        `phone.ilike.%${q}%`,
+        `short_code.ilike.%${q}%`,
+      ].join(',')
+    );
+  }
+
   const [listRes, totalRes, activosRes] = await Promise.all([
-    supabaseAdmin
-      .from('leads')
-      .select('id, short_code, name, email, phone, status, channel, source, created_at')
-      .order('created_at', { ascending: false })
-      .limit(50),
+    query,
     supabaseAdmin.from('leads').select('id', { count: 'exact', head: true }),
     supabaseAdmin.from('leads').select('id', { count: 'exact', head: true }).neq('status', 'descartado'),
   ]);
@@ -86,15 +116,15 @@ export default async function LeadsPage() {
           </div>
         </div>
 
-        {/* Controles: búsqueda + filtros rápidos */}
+        {/* Controles: búsqueda + filtros rápidos (UI estática, filtros por URL) */}
         <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex w-full items-center gap-2 md:w-auto">
             <div className="relative w-full md:w-96">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
+                defaultValue={q}
                 placeholder="Buscar por nombre, email o código…"
                 className="w-full rounded-lg border border-zinc-200 bg-white pl-9 pr-3 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 outline-none focus:ring-4 focus:ring-sky-100"
-                // si luego quieres búsqueda real: conviértelo a client component y filtra
                 readOnly
               />
             </div>
@@ -107,11 +137,11 @@ export default async function LeadsPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <QuickFilter label="Todos" href="/dashboard/leads" active />
-            <QuickFilter label="Nuevo" href="/dashboard/leads?status=nuevo" tone="sky" />
-            <QuickFilter label="Contactado" href="/dashboard/leads?status=contactado" tone="indigo" />
-            <QuickFilter label="Válido" href="/dashboard/leads?status=valido" tone="emerald" />
-            <QuickFilter label="Descartado" href="/dashboard/leads?status=descartado" tone="rose" />
+            <QuickFilter label="Todos" href="/dashboard/leads" active={!status} />
+            <QuickFilter label="Nuevo" href="/dashboard/leads?status=nuevo" tone="sky" active={status === 'nuevo'} />
+            <QuickFilter label="Contactado" href="/dashboard/leads?status=contactado" tone="indigo" active={status === 'contactado'} />
+            <QuickFilter label="Válido" href="/dashboard/leads?status=valido" tone="emerald" active={status === 'valido'} />
+            <QuickFilter label="Descartado" href="/dashboard/leads?status=descartado" tone="rose" active={status === 'descartado'} />
           </div>
         </div>
       </header>
