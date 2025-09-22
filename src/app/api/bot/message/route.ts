@@ -1,165 +1,291 @@
-// src/app/api/bot/message/route.ts
-import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
-import { supabaseAdmin } from '@/app/lib/supabaseAdmin';
-
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+import { createClient } from '@supabase/supabase-js';
+import OpenAI from 'openai';
+import { NextResponse } from 'next/server';
+
+// Configuración
+const MAX_HISTORY_MESSAGES = Number(process.env.MAX_HISTORY_MESSAGES || 30);
+const MAX_INPUT_CHARS = 2000;
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const SAVE_LEADS = (process.env.SAVE_LEADS ?? 'true').toLowerCase() === 'true';
 const DEDUPE_WINDOW_HOURS = Number(process.env.LEADS_DEDUPE_H || 48);
 
-const systemPrompt = `
-Eres un asistente virtual experto en calificación de clientes para "DeudasCero".
-Objetivo mínimo: nombre, un método de contacto (email o teléfono) y motivo.
-Cuando tengas los 3, responde al usuario con un cierre amable y luego EMITE:
-<LEAD>
-{ "name": "...", "email": "...", "phone": "...", "motivo": "..." }
-</LEAD>
-No pidas todo a la vez. No prometas tiempos ni resultados.
-`;
+// Clientes
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
+});
 
-function trimTo(s: unknown, n: number) {
-  const v = String(s ?? '');
-  return v.length > n ? v.slice(0, n) : v;
-}
-const MAX_INPUT_CHARS = 2000;
-
-function normEmail(v?: string | null) {
-  const s = (v ?? '').trim().toLowerCase();
-  if (!s) return null;
-  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
-  return ok ? s : null;
-}
-function normPhone(v?: string | null) {
-  const s = (v ?? '').replace(/[^\d+]/g, '');
-  if (!s) return null;
-  const digits = s.replace(/\D/g, '');
-  if (digits.length < 8 || digits.length > 15) return null;
-  return s;
-}
-function normText(v?: string | null) {
-  return trimTo((v ?? '').trim(), 500);
+// Utilidades
+function trimTo(s: string, n: number): string {
+  return s.length > n ? s.substring(0, n) : s;
 }
 
-function extractLeadBlock(text: string) {
-  const m = text.match(/<LEAD>\s*([\s\S]*?)\s*<\/LEAD>/i);
-  if (!m) return null;
+function normEmail(email: string): string | null {
+  const trimmed = email.trim().toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(trimmed) ? trimmed : null;
+}
+
+function normPhone(phone: string): string | null {
+  const digits = phone.replace(/\D/g, '');
+  return digits.length >= 8 && digits.length <= 15 ? digits : null;
+}
+
+function normText(text: string): string {
+  return text.trim().replace(/\s+/g, ' ');
+}
+
+function extractLeadBlock(text: string): any | null {
+  const regex = /<LEAD>([\s\S]*?)<\/LEAD>/;
+  const match = text.match(regex);
+  if (!match) return null;
+  
   try {
-    const json = JSON.parse(m[1]);
-    return json;
+    return JSON.parse(match[1]);
   } catch {
     return null;
   }
 }
 
-function getClientMeta(reqUrl: string, headers: Headers) {
-  const ua = headers.get('user-agent') ?? '';
-  const referer = headers.get('referer') ?? '';
-  const ip = headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '';
-  const url = new URL(reqUrl);
-  const utm = Object.fromEntries(
-    Array.from(url.searchParams.entries()).filter(([k]) => k.startsWith('utm_'))
-  );
-  return { ua, referer, ip, utm };
+function sniffSlots(allText: string): { name: string | null; email: string | null; phone: string | null } {
+  const text = allText.toLowerCase();
+  
+  // Buscar email
+  const emailMatch = text.match(/([^\s@]+@[^\s@]+\.[^\s@]+)/);
+  const email = emailMatch ? normEmail(emailMatch[1]) : null;
+  
+  // Buscar teléfono
+  const phoneMatch = text.match(/(\+?[\d\s\-\(\)]{8,15})/);
+  const phone = phoneMatch ? normPhone(phoneMatch[1]) : null;
+  
+  // Buscar nombre (heurística simple)
+  let name: string | null = null;
+  const namePatterns = [
+    /mi nombre es ([a-záéíóúñ\s]+)/i,
+    /me llamo ([a-záéíóúñ\s]+)/i,
+    /soy ([a-záéíóúñ\s]+)/i
+  ];
+  
+  for (const pattern of namePatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      name = normText(match[1]);
+      break;
+    }
+  }
+  
+  return { name, email, phone };
 }
 
-async function findRecentDuplicate(email: string | null, phone: string | null) {
-  if (!email && !phone) return null;
-  const since = new Date(Date.now() - DEDUPE_WINDOW_HOURS * 3600 * 1000).toISOString();
-  const q = supabaseAdmin.from('leads').select('id,created_at').gte('created_at', since).limit(1);
-  if (email) q.eq('email', email);
-  if (phone) q.eq('phone', phone);
-  const { data } = await q;
-  return data?.[0] ?? null;
+async function getOrCreateConversation(conversationId?: string | null): Promise<{ id: string; messages: any[] }> {
+  if (conversationId) {
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('id, messages')
+      .eq('id', conversationId)
+      .single();
+    
+    if (!error && data) {
+      return { id: data.id, messages: data.messages || [] };
+    }
+  }
+  
+  // Crear nueva conversación
+  const { data, error } = await supabase
+    .from('conversations')
+    .insert({
+      messages: [],
+      status: 'active'
+    })
+    .select('id, messages')
+    .single();
+  
+  if (error) throw new Error(`Error creating conversation: ${error.message}`);
+  
+  return { id: data.id, messages: data.messages || [] };
 }
 
-function isValidMessageHistory(messages: unknown): messages is ChatMessage[] {
-  return (
-    Array.isArray(messages) &&
-    messages.every(
-      (m) =>
-        m &&
-        typeof m === 'object' &&
-        'role' in m &&
-        'content' in m &&
-        typeof (m as any).role === 'string' &&
-        typeof (m as any).content === 'string'
-    )
-  );
+async function updateConversationMessages(conversationId: string, messages: any[]): Promise<void> {
+  const { error } = await supabase
+    .from('conversations')
+    .update({ messages })
+    .eq('id', conversationId);
+  
+  if (error) throw new Error(`Error updating conversation: ${error.message}`);
+}
+
+async function upsertLead(leadData: any, conversationId: string): Promise<string | null> {
+  if (!SAVE_LEADS) return null;
+  
+  const { name, email, phone, motivo } = leadData;
+  
+  if (!name || (!email && !phone)) return null;
+  
+  // Verificar dedupe en las últimas 48h
+  const dedupeDate = new Date();
+  dedupeDate.setHours(dedupeDate.getHours() - DEDUPE_WINDOW_HOURS);
+  
+  let dedupeQuery = supabase
+    .from('leads')
+    .select('id')
+    .gte('created_at', dedupeDate.toISOString());
+  
+  if (email && phone) {
+    dedupeQuery = dedupeQuery.or(`email.eq.${email},phone.eq.${phone}`);
+  } else if (email) {
+    dedupeQuery = dedupeQuery.eq('email', email);
+  } else if (phone) {
+    dedupeQuery = dedupeQuery.eq('phone', phone);
+  }
+  
+  const { data: existingLeads } = await dedupeQuery;
+  
+  if (existingLeads && existingLeads.length > 0) {
+    return existingLeads[0].id;
+  }
+  
+  // Insertar nuevo lead
+  const insertData: any = {
+    name: normText(name),
+    conversation_id: conversationId,
+    source: 'web_bot'
+  };
+  
+  if (email) insertData.email = normEmail(email);
+  if (phone) insertData.phone = normPhone(phone);
+  if (motivo) insertData.motivo = normText(motivo);
+  
+  const { data, error } = await supabase
+    .from('leads')
+    .insert(insertData)
+    .select('id')
+    .single();
+  
+  if (error) throw new Error(`Error creating lead: ${error.message}`);
+  
+  return data.id;
 }
 
 export async function POST(req: Request) {
   try {
-    const { message, conversationId, history } = await req.json();
-
-    let conversationHistory: ChatMessage[] = [{ role: 'system', content: systemPrompt }];
-
-    if (isValidMessageHistory(history)) {
-      // (opcional) si mandas history desde el cliente, úsalo
-      conversationHistory = [conversationHistory[0], ...history].map((m) => ({
-        role: m.role,
-        content: trimTo(m.content, MAX_INPUT_CHARS),
-      }));
+    const body = await req.json();
+    const { message, conversationId, systemPrompt, history } = body;
+    
+    // 1. Validar message
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
+    
+    const trimmedMessage = trimTo(message.trim(), MAX_INPUT_CHARS);
+    
+    // 2. Resolver conversationId
+    const conversation = await getOrCreateConversation(conversationId);
+    
+    // 3. Determinar historial a usar
+    let currentHistory: any[] = [];
+    
+    if (history && Array.isArray(history)) {
+      currentHistory = history.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+    } else {
+      currentHistory = conversation.messages || [];
+    }
+    
+    // 4. Append del turno del usuario
+    currentHistory.push({ role: 'user', content: trimmedMessage });
+    
+    // Limitar historial
+    if (currentHistory.length > MAX_HISTORY_MESSAGES) {
+      currentHistory = currentHistory.slice(-MAX_HISTORY_MESSAGES);
+    }
+    
+    // Persistir en base de datos
+    await updateConversationMessages(conversation.id, currentHistory);
+    
+    // 5. Preparar prompt de sistema y KnownSlots
+    const defaultSystemPrompt = `Eres "LEX", Analista Legal Virtual de DeudaCero (Chile). Tono profesional, empático y claro.
+Objetivo de captura (slot-filling, en este orden):
+1) Nombre
+2) Contacto: email O teléfono (uno basta)
+3) Motivo
+Reglas duras:
+- UNA pregunta por turno, mensajes breves.
+- Si un slot ya está en el historial o en KnownSlots, NO lo pidas de nuevo; reconócelo y avanza.
+- Nunca repitas la misma pregunta en turnos consecutivos.
+- No prometas tiempos ni resultados; no des asesoría legal específica.
+- Cuando tengas (nombre + email/telefono), agrega al FINAL del mensaje:
+<LEAD>{"name":"...","email":"...","phone":"..."}</LEAD>
+- Si también tienes el motivo, inclúyelo en el mismo bloque: {"motivo":"..."}
+Lenguaje local de Chile (DICOM, cobranza, prescripción, repactación).`;
+    
+    const finalSystemPrompt = systemPrompt || defaultSystemPrompt;
+    
+    // Detectar slots conocidos
+    const allHistoryText = currentHistory.map(msg => msg.content).join(' ');
+    const knownSlots = sniffSlots(allHistoryText);
+    
+    const systemPromptWithSlots = `${finalSystemPrompt}
 
-    // Si usas Supabase para persistir, la lógica original aquí:
-    // ... (puedes traer y fusionar historial de conversations como ya tenías)
-
-    conversationHistory.push({ role: 'user', content: trimTo(message, MAX_INPUT_CHARS) });
-
+KnownSlots: ${JSON.stringify(knownSlots)}
+Política: si un slot está presente en KnownSlots o aparece en el historial, NO lo vuelvas a pedir.`;
+    
+    // 6. Llamar a OpenAI
+    const messages = [
+      { role: 'system', content: systemPromptWithSlots },
+      ...currentHistory
+    ];
+    
     const completion = await openai.chat.completions.create({
       model: MODEL,
-      messages: conversationHistory,
+      messages: messages as any,
       temperature: 0.2,
       max_tokens: 500,
     });
-
-    const botReply = completion.choices[0]?.message?.content || 'No pude procesar tu solicitud.';
-
-    // Intentar extraer <LEAD> del reply y persistir
-    let persistedLeadId: string | null = null;
-    if (SAVE_LEADS) {
-      const raw = extractLeadBlock(botReply);
-      if (raw) {
-        const name = normText(raw.name);
-        const email = normEmail(raw.email);
-        const phone = normPhone(raw.phone);
-        const motivo = normText(raw.motivo);
-        const enough = !!(name && (email || phone) && motivo);
-        if (enough) {
-          const meta = getClientMeta(req.url, new Headers(req.headers));
-          const dup = await findRecentDuplicate(email, phone);
-          if (!dup) {
-            const { data, error } = await supabaseAdmin
-              .from('leads')
-              .insert({
-                name,
-                email,
-                phone,
-                objetivo: motivo,
-                source: 'web_bot',
-                meta,
-              })
-              .select('id')
-              .single();
-            if (!error && data?.id) persistedLeadId = data.id;
-          }
-        }
-      }
+    
+    const reply = completion.choices[0]?.message?.content || '';
+    
+    // 7. Append reply al historial
+    currentHistory.push({ role: 'assistant', content: reply });
+    
+    // Limitar historial nuevamente
+    if (currentHistory.length > MAX_HISTORY_MESSAGES) {
+      currentHistory = currentHistory.slice(-MAX_HISTORY_MESSAGES);
     }
-
-    // (opcional) persistir conversación como ya haces… (omito por brevedad)
-    // …
-
-    return NextResponse.json({ reply: botReply, leadId: persistedLeadId });
-  } catch (err) {
-    console.error('[api/bot/message] error', err);
-    const msg = err instanceof Error ? err.message : 'internal_error';
-    return NextResponse.json({ error: msg }, { status: 500 });
+    
+    // Persistir historial actualizado
+    await updateConversationMessages(conversation.id, currentHistory);
+    
+    // 8. Extraer bloque LEAD
+    const leadBlock = extractLeadBlock(reply);
+    let leadId: string | null = null;
+    
+    if (leadBlock && leadBlock.name && (leadBlock.email || leadBlock.phone)) {
+      leadId = await upsertLead(leadBlock, conversation.id);
+    }
+    
+    // 9. Responder JSON
+    const cleanReply = reply.replace(/<LEAD>[\s\S]*?<\/LEAD>/, '').trim();
+    
+    return NextResponse.json({
+      conversationId: conversation.id,
+      reply: cleanReply,
+      ...(leadId && { leadId })
+    });
+    
+  } catch (error) {
+    console.error('Error in bot message endpoint:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
-}
+} // 👈 ESTA TE FALTA

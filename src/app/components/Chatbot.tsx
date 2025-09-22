@@ -3,25 +3,37 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, Send, X } from "lucide-react";
 import {
-  sendBotMessage,
   extractLeadBlock,
-  captureLead,
   saveConversationForReview,
   getConversationId,
+  setConversationId,
+  sendBotMessage,
 } from "@/app/lib/chatAdapter";
 
 type Message = { role: "user" | "assistant"; content: string };
 
-// Prompt (sin 'motivo')
-const SYSTEM_PROMPT = `Eres "LEX", un Analista Legal Virtual de DeudaCero en Chile. Tu tono es profesional, empático y claro. Objetivo: pre-diagnóstico y capturar datos.
+// ✅ PROMPT MEJORADO: Enfocado en capturar leads y derivar a ventas
+const SYSTEM_PROMPT = `Eres "LEX", Analista Legal Virtual de DeudaCero Chile. Tu objetivo es CAPTURAR LEADS y derivarlos a nuestro equipo comercial.
 
-Reglas:
-1) Preséntate como LEX.
-2) Mensajes breves, 1 pregunta a la vez.
-3) Primero nombre + (email o teléfono).
-4) Si faltan datos, tranquiliza y sigue; no perdemos el lead.
-5) Cuando tengas mínimos (nombre + contacto), agrega al FINAL:
-<LEAD>{"name":"...", "email":"...", "phone":"..."}</LEAD>`;
+MISIÓN: Capturar nombre + contacto (email O teléfono) + motivo, luego derivar a ventas.
+
+REGLAS ESTRICTAS:
+1) Preséntate como LEX de DeudaCero
+2) Mensajes BREVES (máximo 2 líneas)
+3) UNA pregunta por turno
+4) Prioridad: nombre → contacto → motivo
+5) Si ya tienes un dato en el historial, NO lo pidas de nuevo
+6) NO des asesoría gratuita - tu trabajo es CAPTURAR y DERIVAR
+7) Cuando tengas nombre + contacto, di: "Perfecto [nombre], nuestro equipo te contactará pronto para ayudarte con [motivo]. ¿Prefieres que te llamemos o te escribamos?"
+
+RESPUESTAS TIPO:
+- Sin nombre: "Hola, soy LEX de DeudaCero. Para ayudarte mejor, ¿me dices tu nombre?"
+- Sin contacto: "Gracias [nombre]. ¿Me das tu email o teléfono para que te contactemos?"
+- Sin motivo: "¿Cuál es tu situación con las deudas? ¿DICOM, cobranza, repactación?"
+- Con todo: "Perfecto [nombre], te contactaremos pronto. Nuestros especialistas te darán la mejor solución."
+
+Cuando tengas mínimos (nombre + contacto), agrega:
+<LEAD>{"name":"...", "email":"...", "phone":"...", "motivo":"..."}</LEAD>`;
 
 const TypingIndicator = () => (
   <div className="flex justify-start">
@@ -37,39 +49,13 @@ export default function Chatbot() {
   const [open, setOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [msgs, setMsgs] = useState<Message[]>([
-    { role: "assistant", content: "Hola, soy LEX, tu Analista Legal Virtual. ¿En qué te ayudo con tus deudas?" },
+    { role: "assistant", content: "Hola, soy LEX de DeudaCero. ¿Tienes problemas con deudas o DICOM? ¿Me dices tu nombre para ayudarte?" },
   ]);
   const [unread, setUnread] = useState(0);
   const [showNudge, setShowNudge] = useState(false);
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // ---------- Permitir abrir el chat desde fuera ----------
-  useEffect(() => {
-    const openNow = () => {
-      (window as any).__LEX_OPENED__ = true;
-      setOpen(true);
-      setUnread(0);
-      setShowNudge(false);
-      sessionStorage.setItem("lex_seen", "1");
-      setTimeout(() => inputRef.current?.focus(), 50);
-    };
-
-    window.addEventListener("open-lex-chat", openNow as EventListener);
-    (window as any).openLexChat = openNow;
-
-    try {
-      const sp = new URLSearchParams(window.location.search);
-      if (sp.get("chat") === "1") openNow();
-    } catch {}
-
-    return () => {
-      window.removeEventListener("open-lex-chat", openNow as EventListener);
-      delete (window as any).openLexChat;
-    };
-  }, []);
-  // --------------------------------------------------------
 
   // Auto-scroll
   useEffect(() => {
@@ -94,14 +80,12 @@ export default function Chatbot() {
     }
   }, [msgs, open]);
 
-  // Hotkeys (parche: sin toLowerCase)
+  // Hotkeys
   useEffect(() => {
-    const handler = (evt: KeyboardEvent) => {
-      const key = typeof evt?.key === "string" ? evt.key : "";
-      if (!key) return;
-      if (key === "Escape" && open) setOpen(false);
-      if ((key === "l" || key === "L") && (evt.metaKey || evt.ctrlKey)) {
-        evt.preventDefault();
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && open) setOpen(false);
+      if (e.key.toLowerCase() === "l" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
         toggleOpen();
       }
     };
@@ -113,7 +97,6 @@ export default function Chatbot() {
     setOpen((v) => {
       const next = !v;
       if (next) {
-        (window as any).__LEX_OPENED__ = true;
         setUnread(0);
         setShowNudge(false);
         sessionStorage.setItem("lex_seen", "1");
@@ -134,25 +117,29 @@ export default function Chatbot() {
     setIsTyping(true);
 
     try {
-      const { reply } = await sendBotMessage(text, { systemPrompt: SYSTEM_PROMPT });
-      const cleanReply = reply.replace(/<LEAD>[\s\S]*?<\/LEAD>/, "").trim();
+      // Usar sendBotMessage del chatAdapter corregido
+      const result = await sendBotMessage(text, {
+        systemPrompt: SYSTEM_PROMPT,
+        history: newHistory.map(m => ({ role: m.role, content: m.content }))
+      });
 
+      const reply = result.reply || "";
+      
       setIsTyping(false);
-      setMsgs([...newHistory, { role: "assistant", content: cleanReply }]);
+      setMsgs([...newHistory, { role: "assistant", content: reply }]);
 
-      const leadData = extractLeadBlock(reply);
-      if (leadData) {
-        await captureLead(leadData);
-      } else if (newHistory.length > 5) {
-        const conversationId = getConversationId();
-        await saveConversationForReview(conversationId);
+      // ✅ MEJORADO: Marcar como completada solo si se capturó un lead
+      if (result.leadId) {
+        console.log('✅ Lead capturado exitosamente:', result.leadId);
+        await saveConversationForReview(result.conversationId);
       }
+
     } catch (e) {
-      console.error(e);
+      console.error('Error en el chat:', e);
       setIsTyping(false);
       setMsgs((curr) => [
         ...curr,
-        { role: "assistant", content: "Lo siento, tuve un problema técnico. Intenta nuevamente en un momento." },
+        { role: "assistant", content: "Disculpa, tuve un problema técnico. ¿Puedes intentar de nuevo?" },
       ]);
     }
   }
@@ -163,15 +150,15 @@ export default function Chatbot() {
       {showNudge && (
         <div className="fixed bottom-24 right-5 z-[60] max-w-[260px] animate-fade-in-up">
           <div className="rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-[0_8px_24px_rgba(2,6,23,0.12)]">
-            <div className="mb-1 font-semibold text-slate-900">¿Tienes dudas legales?</div>
+            <div className="mb-1 font-semibold text-slate-900">¿Problemas con deudas?</div>
             <div className="text-slate-600">
-              Habla con <span className="font-medium text-emerald-700">LEX</span> y te orientamos ahora.
+              <span className="font-medium text-emerald-700">LEX</span> te ayuda a salir de DICOM y negociar tus deudas.
             </div>
           </div>
         </div>
       )}
 
-      {/* Launcher */}
+      {/* Botón launcher */}
       <button
         onClick={toggleOpen}
         aria-label="Abrir chat con LEX"
@@ -187,11 +174,11 @@ export default function Chatbot() {
           )}
         </span>
         <span className="relative z-10 text-sm font-semibold tracking-tight">
-          ¿Te ayudamos? <span className="hidden sm:inline">¡Haz clic aquí!</span>
+          ¿Deudas? <span className="hidden sm:inline">¡Te ayudamos!</span>
         </span>
       </button>
 
-      {/* Ventana */}
+      {/* Ventana de chat */}
       {open && (
         <div className="fixed bottom-20 right-5 z-[70] flex h-[min(640px,calc(100vh-120px))] w-[min(420px,calc(100vw-40px))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-[0_16px_60px_rgba(2,6,23,0.25)] animate-fade-in-up sm:h-[min(680px,calc(100vh-120px))] sm:w-[420px] max-sm:fixed max-sm:inset-0 max-sm:rounded-none max-sm:border-0">
           {/* Header */}
@@ -201,8 +188,8 @@ export default function Chatbot() {
                 <MessageCircle size={18} />
               </div>
               <div className="leading-tight">
-                <div className="text-sm font-semibold">LEX — Analista Legal Virtual</div>
-                <div className="text-[11px] text-slate-500">Respuestas rápidas y claras</div>
+                <div className="text-sm font-semibold">LEX — DeudaCero Chile</div>
+                <div className="text-[11px] text-slate-500">Especialistas en deudas y DICOM</div>
               </div>
             </div>
             <button
