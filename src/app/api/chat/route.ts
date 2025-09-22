@@ -22,7 +22,6 @@ Reglas:
 
 /* ─────────────── Tipos ─────────────── */
 type ChatMsg = OpenAI.Chat.Completions.ChatCompletionMessageParam;
-type RoleSAU = 'system' | 'user' | 'assistant';
 type IncomingMsg = { role: unknown; content: unknown };
 
 /* ─────────────── Utils ─────────────── */
@@ -108,7 +107,7 @@ export async function POST(req: NextRequest) {
     });
 
     const assistantMsg = completion.choices[0]?.message;
-    let reply: string =
+    const reply: string =
       (assistantMsg?.content as string) ??
       '¿Podrías compartirme tu nombre, correo, teléfono y comuna para avanzar?';
 
