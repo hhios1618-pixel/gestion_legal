@@ -1,32 +1,48 @@
+// File: src/app/components/Chatbot.tsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, Send, X } from "lucide-react";
-import {
-  sendBotMessage,
-  saveConversationForReview,
-} from "@/app/lib/chatAdapter";
+import { sendBotMessage, saveConversationForReview } from "@/app/lib/chatAdapter";
 
 type Message = { role: "user" | "assistant"; content: string };
 
-// ================= SYSTEM PROMPT =================
-const SYSTEM_PROMPT = `Eres "LEX", Analista Legal Virtual de DeudaCero (Chile). Tu objetivo es CAPTURAR LEADS y derivarlos a ventas.
+/**
+ * PROMPT COMERCIAL ROBUSTO
+ * - No reinicia el saludo una vez comenzada la conversación
+ * - 1 pregunta por turno, máximo 2 líneas
+ * - Valida email/teléfono
+ * - Cierra y emite <LEAD> cuando ya tiene nombre + contacto + motivo
+ * - Acreedor, monto y comuna se compactan dentro de "motivo" (tu tabla sólo tiene 'motivo')
+ */
+const SYSTEM_PROMPT = `Eres "LEX", Analista Legal Virtual de DeudaCero (Chile). Tu misión es CAPTURAR LEADS y derivarlos a ventas.
 
-OBJETIVO (slot-filling): 1) nombre  2) contacto (email O teléfono)  3) motivo
-REGLAS ESTRICTAS:
-- Preséntate como LEX de DeudaCero.
-- Mensajes BREVES (máx. 2 líneas). UNA pregunta por turno.
-- Si ya tienes un dato en el historial, NO lo pidas de nuevo; reconoce y avanza.
+SLOTS OBLIGATORIOS (en este orden):
+1) nombre
+2) contacto (email válido O teléfono válido)
+3) motivo breve y útil (si puedes, agrega acreedor, monto aprox. y comuna/ciudad en la misma frase)
+
+REGLAS DURAS:
+- Presentación sólo en el primer turno. Nunca vuelvas a decir "Hola, soy LEX..." una vez iniciado.
+- UNA pregunta por turno. Mensajes breves (máx. 2 líneas).
+- Si un slot ya está en el historial, NO lo repitas: reconoce y avanza al siguiente.
 - Valida contacto:
-  • email con formato válido
-  • phone: solo dígitos (ignora espacios/guiones), longitud 8–15. Si es inválido, pide corrección.
-- NO prometas plazos ni resultados específicos.
-- Cuando tengas (nombre + (email o phone válidos) + motivo), cierra y al FINAL incluye EXACTAMENTE:
-<LEAD>{"name":"...","email":"...","phone":"...","motivo":"..."}</LEAD>
+  • email: debe tener formato válido.
+  • teléfono: sólo dígitos (ignora espacios/guiones), 8–15 dígitos. Si es inválido, pide corrección o el otro canal.
+- No prometas plazos ni resultados específicos.
+- Nada de "tuve un problema técnico" salvo que el usuario lo exija.
+- Cuando tengas (nombre + contacto válido + motivo), CIERRA y EMITE EXACTAMENTE al FINAL:
+<LEAD>{"name":"NOMBRE","email":"EMAIL_o_null","phone":"PHONE_o_null","motivo":"MOTIVO"}</LEAD>
 
-EJEMPLOS DE VALIDACIÓN:
-Usuario: "Tomás, 7702888'"
-Tú: "Gracias, Tomás. Ese teléfono parece incompleto. ¿Me lo confirmas con 8 o más dígitos? (o comparte tu correo)"`;
+TONO COMERCIAL (sin prometer):
+- "Es muy posible que podamos ayudarte; nuestro equipo evaluará tu caso y te propondrá la mejor salida."
+- Si falta contacto: "Gracias, [NOMBRE]. ¿Cuál es tu email o teléfono para coordinar?"
+- Si falta motivo: "¿Qué pasó con tu deuda? (DICOM, cobranza, prescripción). Si sabes: acreedor, monto aprox. y tu comuna."
+- Si contacto inválido: "Ese contacto no parece válido. ¿Puedes confirmarlo o compartir el otro canal?"
+
+IMPORTANTE:
+- No generes el bloque <LEAD> hasta tener los 3 slots.
+- Una vez emitas <LEAD>, no sigas preguntando; finaliza con el cierre comercial.`;
 
 const TypingIndicator = () => (
   <div className="flex justify-start">
@@ -42,7 +58,11 @@ export default function Chatbot() {
   const [open, setOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [msgs, setMsgs] = useState<Message[]>([
-    { role: "assistant", content: "Hola, soy LEX de DeudaCero. ¿Tienes problemas con deudas o DICOM? ¿Me dices tu nombre para ayudarte?" },
+    {
+      role: "assistant",
+      content:
+        "Hola, soy LEX de DeudaCero. ¿Tienes problemas con deudas o DICOM? ¿Me dices tu nombre para ayudarte?",
+    },
   ]);
   const [unread, setUnread] = useState(0);
   const [showNudge, setShowNudge] = useState(false);
@@ -61,7 +81,10 @@ export default function Chatbot() {
     if (!seen) {
       const t = setTimeout(() => setShowNudge(true), 1000);
       const t2 = setTimeout(() => setShowNudge(false), 9000);
-      return () => { clearTimeout(t); clearTimeout(t2); };
+      return () => {
+        clearTimeout(t);
+        clearTimeout(t2);
+      };
     }
   }, []);
 
@@ -76,8 +99,10 @@ export default function Chatbot() {
   // Hotkeys
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && open) setOpen(false);
-      if ((e.key === "l" || e.key === "L") && (e.metaKey || e.ctrlKey)) {
+      const key = typeof e.key === "string" ? e.key : "";
+      if (!key) return;
+      if (key === "Escape" && open) setOpen(false);
+      if ((key === "l" || key === "L") && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         toggleOpen();
       }
@@ -112,22 +137,29 @@ export default function Chatbot() {
     try {
       const { reply, conversationId, leadId, leadStatus } = await sendBotMessage(text, {
         systemPrompt: SYSTEM_PROMPT,
-        history: newHistory.map(m => ({ role: m.role, content: m.content }))
+        history: newHistory.map((m) => ({ role: m.role, content: m.content })),
       });
 
       setIsTyping(false);
       setMsgs([...newHistory, { role: "assistant", content: reply || "" }]);
 
-      // Solo marcamos success si realmente insertamos
-      if (leadStatus === 'inserted' && leadId) {
-        await saveConversationForReview(conversationId, 'success');
+      // Marcamos success solo si realmente insertamos un lead nuevo o dedupe válido
+      if ((leadStatus === "inserted" || leadStatus === "deduped") && conversationId) {
+        await saveConversationForReview(conversationId, "success");
+        if (leadId) {
+          console.log("✅ Lead guardado:", leadId, "| status:", leadStatus);
+        }
       }
     } catch (e) {
-      console.error('Error en el chat:', e);
+      console.error("Error en el chat:", e);
       setIsTyping(false);
       setMsgs((curr) => [
         ...curr,
-        { role: "assistant", content: "Disculpa, tuve un problema técnico. ¿Puedes intentar de nuevo?" },
+        {
+          role: "assistant",
+          content:
+            "Disculpa, tuve un problema. ¿Puedes repetir tu último mensaje o compartir tu email/teléfono para ayudarte?",
+        },
       ]);
     }
   }
@@ -146,7 +178,7 @@ export default function Chatbot() {
         </div>
       )}
 
-      {/* Botón launcher */}
+      {/* Launcher */}
       <button
         onClick={toggleOpen}
         aria-label="Abrir chat con LEX"
@@ -166,7 +198,7 @@ export default function Chatbot() {
         </span>
       </button>
 
-      {/* Ventana de chat */}
+      {/* Ventana */}
       {open && (
         <div className="fixed bottom-20 right-5 z-[70] flex h-[min(640px,calc(100vh-120px))] w-[min(420px,calc(100vw-40px))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-[0_16px_60px_rgba(2,6,23,0.25)] animate-fade-in-up sm:h-[min(680px,calc(100vh-120px))] sm:w-[420px] max-sm:fixed max-sm:inset-0 max-sm:rounded-none max-sm:border-0">
           {/* Header */}
@@ -192,8 +224,16 @@ export default function Chatbot() {
           {/* Conversación */}
           <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3 bg-white">
             {msgs.map((m, i) => (
-              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`} aria-live="polite">
-                <div className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm shadow-sm ${m.role === "user" ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-900"}`}>
+              <div
+                key={i}
+                className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                aria-live="polite"
+              >
+                <div
+                  className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm shadow-sm ${
+                    m.role === "user" ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-900"
+                  }`}
+                >
                   {m.content}
                 </div>
               </div>
@@ -230,17 +270,36 @@ export default function Chatbot() {
       {/* Animaciones globales */}
       <style jsx global>{`
         @keyframes fade-in-up {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
-        .animate-fade-in-up { animation: fade-in-up 0.25s ease-out; }
+        .animate-fade-in-up {
+          animation: fade-in-up 0.25s ease-out;
+        }
 
         @keyframes lex-pulse {
-          0%   { transform: translateZ(0) scale(1);   box-shadow: 0 12px 28px rgba(4,120,87,0.25); }
-          50%  { transform: translateZ(0) scale(1.03); box-shadow: 0 16px 38px rgba(4,120,87,0.35); }
-          100% { transform: translateZ(0) scale(1);   box-shadow: 0 12px 28px rgba(4,120,87,0.25); }
+          0% {
+            transform: translateZ(0) scale(1);
+            box-shadow: 0 12px 28px rgba(4, 120, 87, 0.25);
+          }
+          50% {
+            transform: translateZ(0) scale(1.03);
+            box-shadow: 0 16px 38px rgba(4, 120, 87, 0.35);
+          }
+          100% {
+            transform: translateZ(0) scale(1);
+            box-shadow: 0 12px 28px rgba(4, 120, 87, 0.25);
+          }
         }
-        .animate-lex-pulse { animation: lex-pulse 2.6s ease-in-out infinite; }
+        .animate-lex-pulse {
+          animation: lex-pulse 2.6s ease-in-out infinite;
+        }
       `}</style>
     </>
   );

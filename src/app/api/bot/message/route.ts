@@ -1,3 +1,4 @@
+// src/app/api/bot/message/route.ts
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +37,7 @@ SLOTS OBLIGATORIOS (en orden):
 
 REGLAS:
 - Una sola pregunta por turno. No pidas lo ya dado; reconócelo y avanza.
-- Validar contacto: email con formato y/o phone 8–15 dígitos.
+- Validar contacto: email con formato y/o phone 8–15 dígitos (sólo números al almacenar).
 - En Chile: usa lenguaje local (DICOM, cobranza, prescripción).
 - No prometer plazos ni dar asesoría jurídica específica.
 - Cierre positivo y comercial cuando tengas los 7 slots.
@@ -49,7 +50,7 @@ PLANTILLAS:
 - Falta acreedor → "¿Con qué empresa o banco es la deuda?"
 - Falta monto → "¿Aproximadamente de cuánto es el monto? (ej: 10 millones)"
 - Falta región/comuna → "¿De qué región y comuna nos contactas?"
-- Cierre (todo): 
+- Cierre (todo):
   "Excelente, {name}. Ya registré tu caso: {motivo} con {acreedor} por ${"{monto}"} en {comuna}, {region}.
    Nuestro equipo de DeudaCero te contactará. Con nosotros sí es posible encontrar una salida."
 
@@ -69,10 +70,9 @@ function normEmail(email?: string | null): string | null {
 }
 
 function normPhone(phone?: string | null): string | null {
-  const raw = (phone ?? '').replace(/[^\d+]/g, '');
-  const digits = raw.replace(/\D/g, '');
-  if (!digits) return null;
-  if (digits.length < 8 || digits.length > 15) return null;
+  const raw = (phone ?? '').replace(/[^\d]/g, ''); // sólo dígitos
+  if (!raw) return null;
+  if (raw.length < 8 || raw.length > 15) return null;
   return raw;
 }
 
@@ -84,25 +84,28 @@ function normText(text?: string | null): string | null {
 /** Parseo robusto de monto en CLP (ej: "10 millones", "300.000.000", "15m", "1,2 M"). */
 function parseMontoToCLP(input?: string | null): number | null {
   if (!input) return null;
-  let s = input.toString().toLowerCase().replace(/\s+/g, ' ').trim();
+  let s = input.toString().toLowerCase().trim();
 
-  // normalizar coma como decimal y eliminar separadores de miles
+  // normalizar separadores
   s = s.replace(/\./g, '').replace(/,/g, '.'); // 300.000.000 → 300000000 ; 1,2 → 1.2
   const hasMillon = /(millones|millon|m\b)/i.test(s);
 
-  // capturar número principal
   const numMatch = s.match(/(\d+(\.\d+)?)/);
   if (!numMatch) return null;
   const base = parseFloat(numMatch[1]);
   if (isNaN(base) || base <= 0) return null;
 
-  // si dice "millones" o "m", multiplicar por 1e6
   const value = hasMillon ? base * 1_000_000 : base;
 
-  // límites sanos (evitar basura): 1 mil a 100 mil millones
+  // límites sanos
   if (value < 1_000 || value > 100_000_000_000) return null;
 
   return Math.round(value);
+}
+
+function formatCLP(n?: number | null): string | null {
+  if (!n || !Number.isFinite(n)) return null;
+  return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
 }
 
 function extractLeadBlock(text: string): any | null {
@@ -115,7 +118,9 @@ function extractLeadBlock(text: string): any | null {
   }
 }
 
-function sniffSlots(history: { role: string; content: string }[]) {
+type Msg = { role: 'system' | 'user' | 'assistant'; content: string };
+
+function sniffSlots(history: Msg[]) {
   const all = history.map(m => m.content).join(' ').toLowerCase();
 
   const email = normEmail(all.match(/([^\s@]+@[^\s@]+\.[^\s@]+)/)?.[1] ?? null);
@@ -123,26 +128,22 @@ function sniffSlots(history: { role: string; content: string }[]) {
   const name =
     normText(all.match(/(?:mi nombre es|me llamo|soy)\s+([a-záéíóúñ\s]{2,60})/i)?.[1] ?? null);
   const acreedor =
-    normText(all.match(/\b(santander|ripley|credicenter|scotiabank|bci|falabella|lider|bbva|itau|cmr|hm|la polar)\b/i)?.[1] ?? null);
+    normText(all.match(/\b(santander|ripley|scotiabank|bci|falabella|lider|bbva|itau|cmr|la\s*polar)\b/i)?.[1] ?? null);
 
-  // heurística simple de motivo
   const motivo =
     normText(
       all.match(/\b(dicom|cobranza|repactaci[oó]n|prescripci[oó]n|deuda\s+antigua|demanda|juicio)\b/i)?.[0] ??
-      all.match(/deuda(?:\s+de\b|\s+por\b|.*\b[a-záéíóúñ]+)/i)?.[0] ??
       null
     );
 
-  // monto: números grandes o “millones”
-  const montoText =
-    all.match(/(\d[\d\.\,]*\s*(millones|millon|m\b)?)/i)?.[0] ?? null;
+  const montoText = all.match(/(\d[\d\.\,]*\s*(millones|millon|m\b)?)/i)?.[0] ?? null;
   const monto = parseMontoToCLP(montoText);
 
-  // región/comuna: dejamos al modelo pedir; aquí no hay heurística dura
-  return { name, email, phone, motivo, acreedor, monto: monto ?? null };
+  // región/comuna: que el modelo las pida; sin heurística dura
+  return { name, email, phone, motivo, acreedor, monto: monto ?? null, region: null as string | null, comuna: null as string | null };
 }
 
-function resolveNext(slots: { name: any; email: any; phone: any; motivo: any; acreedor: any; monto: any; region?: any; comuna?: any; }) {
+function resolveNext(slots: { name: any; email: any; phone: any; motivo: any; acreedor: any; monto: any; region: any; comuna: any; }) {
   if (!slots.name) return 'name';
   if (!slots.email && !slots.phone) return 'contact';
   if (!slots.motivo) return 'motivo';
@@ -153,6 +154,20 @@ function resolveNext(slots: { name: any; email: any; phone: any; motivo: any; ac
   return 'close';
 }
 
+function slotsComplete(slots: ReturnType<typeof sniffSlots> & { region: any; comuna: any }) {
+  return Boolean(slots.name && (slots.email || slots.phone) && slots.motivo && slots.acreedor && slots.monto && slots.region && slots.comuna);
+}
+
+function buildMotivoRich(baseMotivo: string | null, extra: { acreedor?: string | null; montoCLP?: number | null; region?: string | null; comuna?: string | null }) {
+  const parts: string[] = [];
+  if (baseMotivo) parts.push(baseMotivo);
+  if (extra.acreedor) parts.push(`Acreedor: ${extra.acreedor}`);
+  if (extra.montoCLP) parts.push(`Monto aprox: ${formatCLP(extra.montoCLP)}`);
+  if (extra.comuna || extra.region) parts.push(`Ubicación: ${[extra.comuna, extra.region].filter(Boolean).join(', ')}`);
+  return parts.join(' | ') || null;
+}
+
+/* ============= Supabase helpers (con tu esquema) ============= */
 async function getOrCreateConversation(conversationId?: string | null) {
   if (conversationId) {
     const { data } = await supabase
@@ -194,36 +209,39 @@ async function findRecentDuplicate(email: string | null, phone: string | null) {
   return data?.[0] ?? null;
 }
 
-async function upsertLead(raw: any, conversationId: string) {
+async function upsertLeadFromSlots(slots: ReturnType<typeof sniffSlots> & { region: string | null; comuna: string | null }, conversationId: string) {
   if (!SAVE_LEADS) return { leadId: null, leadStatus: 'disabled' as const };
 
-  const name = normText(raw?.name);
-  const email = normEmail(raw?.email);
-  const phone = normPhone(raw?.phone);
-  const motivo = normText(raw?.motivo);
-  const acreedor = normText(raw?.acreedor);
-  const region = normText(raw?.region);
-  const comuna = normText(raw?.comuna);
-  const monto = parseMontoToCLP(raw?.monto);
+  const name = normText(slots.name);
+  const email = normEmail(slots.email);
+  const phone = normPhone(slots.phone);
+  const motivo = normText(slots.motivo);
+  const acreedor = normText(slots.acreedor);
+  const region = normText(slots.region);
+  const comuna = normText(slots.comuna);
+  const monto = slots.monto ?? null;
 
-  // mínimos para crear (tu negocio puede endurecer esto si quieres)
-  if (!name || (!email && !phone)) {
-    return { leadId: null, leadStatus: 'skipped' as const };
-  }
+  // mínimos para crear
+  if (!name || (!email && !phone)) return { leadId: null, leadStatus: 'skipped' as const };
 
+  // dedupe 48h
   const dup = await findRecentDuplicate(email, phone);
   if (dup) return { leadId: dup.id as string, leadStatus: 'deduped' as const };
+
+  // motivo enriquecido (sin columnas nuevas)
+  const motivoRich = buildMotivoRich(motivo, {
+    acreedor,
+    montoCLP: monto,
+    region: region ?? undefined,
+    comuna: comuna ?? undefined
+  });
 
   const payload: any = {
     name,
     email,
     phone,
-    motivo: motivo ?? null,
-    acreedor: acreedor ?? null,
-    monto: monto ?? null,
-    region: region ?? null,
-    comuna: comuna ?? null,
-    source: 'bot',          // ⬅ consistente con tu tabla/datos
+    motivo: motivoRich,
+    source: 'bot',
     channel: 'bot',
     conversation_id: conversationId
   };
@@ -250,9 +268,10 @@ export async function POST(req: Request) {
 
     const trimmedMessage = trimTo(message.trim(), MAX_INPUT_CHARS);
 
+    // conversación
     const conversation = await getOrCreateConversation(conversationId);
-    let currentHistory: any[] = Array.isArray(history)
-      ? history.map((m: any) => ({ role: m.role, content: m.content }))
+    let currentHistory: Msg[] = Array.isArray(history)
+      ? history.map((m: any) => ({ role: m.role, content: String(m.content ?? '') as string }))
       : (conversation.messages || []);
 
     // append turno usuario
@@ -263,22 +282,29 @@ export async function POST(req: Request) {
     await updateConversationMessages(conversation.id, currentHistory);
 
     // slots conocidos + siguiente paso
-    const known = sniffSlots(currentHistory);
-    // región/comuna las determina el modelo; las pasamos nulas aquí
-    const next = resolveNext({ ...known, region: null, comuna: null });
+    const baseSlots = sniffSlots(currentHistory);
+    // región/comuna aún no detectadas por heurística => null
+    const slotsWithGeo = { ...baseSlots, region: null as string | null, comuna: null as string | null };
+    const next = resolveNext(slotsWithGeo);
 
+    // steering para evitar loops
     const steering = `KnownSlots: ${JSON.stringify({
-      name: known.name, email: known.email, phone: known.phone,
-      motivo: known.motivo, acreedor: known.acreedor,
-      monto: known.monto ? `${known.monto}` : null,
-      region: null, comuna: null
-    })}\nPróximo paso: ${next}. Pregunta SOLO por ese slot.`;
+      name: baseSlots.name ?? null,
+      email: baseSlots.email ?? null,
+      phone: baseSlots.phone ?? null,
+      motivo: baseSlots.motivo ?? null,
+      acreedor: baseSlots.acreedor ?? null,
+      monto: baseSlots.monto ?? null,
+      region: null,
+      comuna: null
+    })}\nPróximo paso: ${next}. Pregunta SOLO por ese slot y no repitas slots ya resueltos.`;
 
+    // LLM
     const messages = [
       { role: 'system', content: systemPrompt || SYSTEM_PROMPT },
       { role: 'system', content: steering },
       ...currentHistory
-    ];
+    ] as Msg[];
 
     const completion = await openai.chat.completions.create({
       model: MODEL,
@@ -287,7 +313,7 @@ export async function POST(req: Request) {
       max_tokens: 500
     });
 
-    const reply = completion.choices[0]?.message?.content || 'Lo siento, no pude procesar tu solicitud.';
+    let reply = completion.choices[0]?.message?.content || 'Lo siento, no pude procesar tu solicitud.';
 
     // guardar respuesta del bot
     currentHistory.push({ role: 'assistant', content: reply });
@@ -296,13 +322,61 @@ export async function POST(req: Request) {
     }
     await updateConversationMessages(conversation.id, currentHistory);
 
-    // procesar LEAD
-    const leadBlock = extractLeadBlock(reply);
+    // procesar LEAD desde respuesta
     let leadId: string | null = null;
     let leadStatus: 'inserted' | 'deduped' | 'skipped' | 'disabled' | 'error' = 'skipped';
 
+    let leadBlock = extractLeadBlock(reply);
+
+    // --------- AUTO-LEAD FALLBACK: si el modelo no lo emitió pero ya están los 7 slots ----------
+    // Intento reconstruir slots completos leyendo *todo* el historial (incluida la última respuesta del usuario antes del cierre).
+    // OJO: region/comuna sólo las tiene el modelo, pero si el modelo ya las preguntó y el usuario respondió, irán en history.
+    // Aquí sólo activamos fallback si detectamos explícitamente que ya se preguntó y respondió.
+    const fullText = currentHistory.map(m => m.content).join(' ').toLowerCase();
+    const regionMatch = fullText.match(/\b(region|región)\s*:?\s*([a-záéíóúñ\s]{2,60})/i)?.[2] ?? null;
+    const comunaMatch = fullText.match(/\bcomuna\s*:?\s*([a-záéíóúñ\s]{2,60})/i)?.[1] ?? null;
+
+    const reconstructSlots = {
+      ...baseSlots,
+      region: normText(regionMatch),
+      comuna: normText(comunaMatch)
+    };
+
+    if (!leadBlock && slotsComplete(reconstructSlots as any)) {
+      // construimos LEAD compatible
+      leadBlock = {
+        name: reconstructSlots.name,
+        email: reconstructSlots.email,
+        phone: reconstructSlots.phone,
+        motivo: reconstructSlots.motivo,
+        acreedor: reconstructSlots.acreedor,
+        monto: reconstructSlots.monto ? String(reconstructSlots.monto) : null,
+        region: reconstructSlots.region,
+        comuna: reconstructSlots.comuna
+      };
+      // añadimos un cierre amable (no repetimos saludo)
+      const cierre = `Excelente, ${reconstructSlots.name}. Ya registré tu caso. Nuestro equipo de DeudaCero te contactará. Con nosotros sí es posible encontrar una salida.`;
+      reply = `${reply}\n\n${cierre}\n<LEAD>${JSON.stringify(leadBlock)}</LEAD>`;
+      // Guardamos esta respuesta aumentada en la conversación
+      currentHistory.push({ role: 'assistant', content: reply });
+      await updateConversationMessages(conversation.id, currentHistory);
+    }
+    // -------------------------------------------------------------------------------------------
+
     if (leadBlock) {
-      const result = await upsertLead(leadBlock, conversation.id);
+      const result = await upsertLeadFromSlots(
+        {
+          name: leadBlock.name ?? baseSlots.name,
+          email: leadBlock.email ?? baseSlots.email,
+          phone: leadBlock.phone ?? baseSlots.phone,
+          motivo: leadBlock.motivo ?? baseSlots.motivo,
+          acreedor: leadBlock.acreedor ?? baseSlots.acreedor,
+          monto: parseMontoToCLP(leadBlock.monto ?? (baseSlots.monto ? String(baseSlots.monto) : null)),
+          region: normText(leadBlock.region) ?? null,
+          comuna: normText(leadBlock.comuna) ?? null
+        },
+        conversation.id
+      );
       leadId = result.leadId;
       leadStatus = result.leadStatus;
     }
