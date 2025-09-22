@@ -1,109 +1,272 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { MessageCircle, Send, X } from "lucide-react";
+import {
+  sendBotMessage,
+  extractLeadBlock,
+  captureLead,
+  saveConversationForReview,
+  getConversationId,
+} from "@/app/lib/chatAdapter";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Message = { role: "user" | "assistant"; content: string };
+
+// Prompt (sin 'motivo')
+const SYSTEM_PROMPT = `Eres "LEX", un Analista Legal Virtual de DeudaCero en Chile. Tu tono es profesional, empático y claro. Objetivo: pre-diagnóstico y capturar datos.
+
+Reglas:
+1) Preséntate como LEX.
+2) Mensajes breves, 1 pregunta a la vez.
+3) Primero nombre + (email o teléfono).
+4) Si faltan datos, tranquiliza y sigue; no perdemos el lead.
+5) Cuando tengas mínimos (nombre + contacto), agrega al FINAL:
+<LEAD>{"name":"...", "email":"...", "phone":"..."}</LEAD>`;
+
+const TypingIndicator = () => (
+  <div className="flex justify-start">
+    <div className="bg-zinc-800 text-zinc-100 max-w-[85%] rounded-2xl px-4 py-3 text-sm flex items-center space-x-2">
+      <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-pulse [animation-delay:0.1s]" />
+      <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-pulse [animation-delay:0.2s]" />
+      <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-pulse [animation-delay:0.3s]" />
+    </div>
+  </div>
+);
 
 export default function Chatbot() {
   const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [msgs, setMsgs] = useState<Msg[]>([
-    { role: "assistant", content: "Hola, soy tu asistente. ¿Buscas orientación legal o quieres agendar una evaluación?" }
+  const [isTyping, setIsTyping] = useState(false);
+  const [msgs, setMsgs] = useState<Message[]>([
+    { role: "assistant", content: "Hola, soy LEX, tu Analista Legal Virtual. ¿En qué te ayudo con tus deudas?" },
   ]);
+  const [unread, setUnread] = useState(0);
+  const [showNudge, setShowNudge] = useState(false);
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, open]);
+  // ---------- Permitir abrir el chat desde fuera ----------
+  useEffect(() => {
+    const openNow = () => {
+      (window as any).__LEX_OPENED__ = true;
+      setOpen(true);
+      setUnread(0);
+      setShowNudge(false);
+      sessionStorage.setItem("lex_seen", "1");
+      setTimeout(() => inputRef.current?.focus(), 50);
+    };
+
+    window.addEventListener("open-lex-chat", openNow as EventListener);
+    (window as any).openLexChat = openNow;
+
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      if (sp.get("chat") === "1") openNow();
+    } catch {}
+
+    return () => {
+      window.removeEventListener("open-lex-chat", openNow as EventListener);
+      delete (window as any).openLexChat;
+    };
+  }, []);
+  // --------------------------------------------------------
+
+  // Auto-scroll
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [msgs, isTyping, open]);
+
+  // Nudge primera visita
+  useEffect(() => {
+    const seen = sessionStorage.getItem("lex_seen");
+    if (!seen) {
+      const t = setTimeout(() => setShowNudge(true), 1000);
+      const t2 = setTimeout(() => setShowNudge(false), 9000);
+      return () => { clearTimeout(t); clearTimeout(t2); };
+    }
+  }, []);
+
+  // Badge no leídos
+  useEffect(() => {
+    if (!open && msgs.length > 0) {
+      const last = msgs[msgs.length - 1];
+      if (last.role === "assistant") setUnread((u) => u + 1);
+    }
+  }, [msgs, open]);
+
+  // Hotkeys (parche: sin toLowerCase)
+  useEffect(() => {
+    const handler = (evt: KeyboardEvent) => {
+      const key = typeof evt?.key === "string" ? evt.key : "";
+      if (!key) return;
+      if (key === "Escape" && open) setOpen(false);
+      if ((key === "l" || key === "L") && (evt.metaKey || evt.ctrlKey)) {
+        evt.preventDefault();
+        toggleOpen();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open]);
+
+  function toggleOpen() {
+    setOpen((v) => {
+      const next = !v;
+      if (next) {
+        (window as any).__LEX_OPENED__ = true;
+        setUnread(0);
+        setShowNudge(false);
+        sessionStorage.setItem("lex_seen", "1");
+        setTimeout(() => inputRef.current?.focus(), 50);
+      }
+      return next;
+    });
+  }
 
   async function send() {
     const text = input.trim();
-    if (!text || busy) return;
+    if (!text || isTyping) return;
+
     setInput("");
-    const history = [...msgs, { role: "user", content: text } as Msg];
-    setMsgs(history);
-    setBusy(true);
+    const userMessage: Message = { role: "user", content: text };
+    const newHistory = [...msgs, userMessage];
+    setMsgs(newHistory);
+    setIsTyping(true);
 
     try {
-      const r = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ messages: history })
-      });
-      const data = await r.json();
+      const { reply } = await sendBotMessage(text, { systemPrompt: SYSTEM_PROMPT });
+      const cleanReply = reply.replace(/<LEAD>[\s\S]*?<\/LEAD>/, "").trim();
 
-      const next: Msg[] = [...history, { role: "assistant", content: data.reply || "…" }];
-      // Si detectó intención de cita, agrega CTAs
-      if (data?.lead?.intent === "cita") {
-        const links: string[] = [];
-        if (data.links?.whatsapp) links.push(`👉 Agenda por WhatsApp: ${data.links.whatsapp}`);
-        if (data.links?.calendly) links.push(`📅 Agenda en Calendly: ${data.links.calendly}`);
-        if (links.length) next.push({ role: "assistant", content: links.join("\n") });
+      setIsTyping(false);
+      setMsgs([...newHistory, { role: "assistant", content: cleanReply }]);
+
+      const leadData = extractLeadBlock(reply);
+      if (leadData) {
+        await captureLead(leadData);
+      } else if (newHistory.length > 5) {
+        const conversationId = getConversationId();
+        await saveConversationForReview(conversationId);
       }
-      setMsgs(next);
     } catch (e) {
-      setMsgs(m => [...m, { role: "assistant", content: "Perdón, hubo un problema. Intenta de nuevo." }]);
-    } finally {
-      setBusy(false);
+      console.error(e);
+      setIsTyping(false);
+      setMsgs((curr) => [
+        ...curr,
+        { role: "assistant", content: "Lo siento, tuve un problema técnico. Intenta nuevamente en un momento." },
+      ]);
     }
-  }
-
-  function onKey(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") send();
   }
 
   return (
     <>
-      {/* Botón flotante */}
+      {/* Nudge teaser */}
+      {showNudge && (
+        <div className="fixed bottom-24 right-5 z-[60] max-w-[260px] animate-fade-in-up">
+          <div className="rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-[0_8px_24px_rgba(2,6,23,0.12)]">
+            <div className="mb-1 font-semibold text-slate-900">¿Tienes dudas legales?</div>
+            <div className="text-slate-600">
+              Habla con <span className="font-medium text-emerald-700">LEX</span> y te orientamos ahora.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Launcher */}
       <button
-        onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-5 right-5 z-50 rounded-full bg-emerald-600 px-5 py-3 text-white shadow-lg hover:bg-emerald-700"
-        aria-label="Abrir chat"
+        onClick={toggleOpen}
+        aria-label="Abrir chat con LEX"
+        className="fixed bottom-5 right-5 z-[65] group flex items-center gap-3 rounded-full bg-gradient-to-r from-emerald-600 to-green-600 px-5 py-3 text-white shadow-xl ring-1 ring-emerald-400/30 transition hover:brightness-110 hover:scale-[1.02] animate-lex-pulse"
       >
-        Chat
+        <span className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
+          <MessageCircle size={22} />
+          <span className="pointer-events-none absolute inset-0 rounded-full ring-2 ring-white/30 group-hover:ring-white/50" />
+          {unread > 0 && (
+            <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-rose-600 px-1.5 text-[10px] font-semibold leading-5">
+              {unread}
+            </span>
+          )}
+        </span>
+        <span className="relative z-10 text-sm font-semibold tracking-tight">
+          ¿Te ayudamos? <span className="hidden sm:inline">¡Haz clic aquí!</span>
+        </span>
       </button>
 
       {/* Ventana */}
       {open && (
-        <div className="fixed bottom-20 right-5 z-50 w-[360px] overflow-hidden rounded-2xl border border-zinc-800 bg-neutral-950 text-zinc-100 shadow-2xl">
-          <header className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
-            <div className="text-sm font-semibold">Asesor Legal — DeudasCero</div>
-            <button onClick={() => setOpen(false)} className="text-zinc-400 hover:text-zinc-200">✕</button>
+        <div className="fixed bottom-20 right-5 z-[70] flex h-[min(640px,calc(100vh-120px))] w-[min(420px,calc(100vw-40px))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-[0_16px_60px_rgba(2,6,23,0.25)] animate-fade-in-up sm:h-[min(680px,calc(100vh-120px))] sm:w-[420px] max-sm:fixed max-sm:inset-0 max-sm:rounded-none max-sm:border-0">
+          {/* Header */}
+          <header className="flex flex-shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow ring-1 ring-emerald-300/40">
+                <MessageCircle size={18} />
+              </div>
+              <div className="leading-tight">
+                <div className="text-sm font-semibold">LEX — Analista Legal Virtual</div>
+                <div className="text-[11px] text-slate-500">Respuestas rápidas y claras</div>
+              </div>
+            </div>
+            <button
+              onClick={() => setOpen(false)}
+              className="rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+              aria-label="Cerrar chat"
+            >
+              <X size={18} />
+            </button>
           </header>
 
-          <div className="h-80 space-y-3 overflow-y-auto px-4 py-3">
+          {/* Conversación */}
+          <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3 bg-white">
             {msgs.map((m, i) => (
-              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`${m.role === "user" ? "bg-emerald-600 text-white" : "bg-zinc-800 text-zinc-100"} max-w-[85%] rounded-2xl px-3 py-2 text-sm`}>
+              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`} aria-live="polite">
+                <div className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm shadow-sm ${m.role === "user" ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-900"}`}>
                   {m.content}
                 </div>
               </div>
             ))}
+            {isTyping && <TypingIndicator />}
             <div ref={bottomRef} />
           </div>
 
-          <footer className="border-t border-zinc-800 p-2">
+          {/* Input */}
+          <footer className="flex-shrink-0 border-t border-slate-200 bg-white p-2">
             <div className="flex items-center gap-2">
               <input
+                ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={onKey}
-                placeholder="Escribe tu mensaje…"
-                className="flex-1 rounded-md border border-zinc-700 bg-neutral-900 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-500"
+                onKeyDown={(e) => e.key === "Enter" && send()}
+                placeholder="Escribe tu consulta…"
+                className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600"
+                aria-label="Mensaje para LEX"
               />
               <button
                 onClick={send}
-                disabled={busy}
-                className="rounded-md bg-emerald-600 px-3 py-2 text-sm text-white disabled:opacity-60"
+                disabled={isTyping || !input.trim()}
+                className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-50"
               >
+                <Send size={18} />
                 Enviar
               </button>
             </div>
-            <p className="mt-2 px-1 text-[10px] leading-snug text-zinc-400">
-              *La información entregada es referencial y cada caso se evalúa de forma particular. No garantiza tiempos ni resultados.
-            </p>
           </footer>
         </div>
       )}
+
+      {/* Animaciones globales */}
+      <style jsx global>{`
+        @keyframes fade-in-up {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up { animation: fade-in-up 0.25s ease-out; }
+
+        @keyframes lex-pulse {
+          0%   { transform: translateZ(0) scale(1);   box-shadow: 0 12px 28px rgba(4,120,87,0.25); }
+          50%  { transform: translateZ(0) scale(1.03); box-shadow: 0 16px 38px rgba(4,120,87,0.35); }
+          100% { transform: translateZ(0) scale(1);   box-shadow: 0 12px 28px rgba(4,120,87,0.25); }
+        }
+        .animate-lex-pulse { animation: lex-pulse 2.6s ease-in-out infinite; }
+      `}</style>
     </>
   );
 }
