@@ -67,7 +67,7 @@ export default function EvalLeadForm() {
               name="name"
               required
               placeholder="Ej. Juan Pérez"
-              className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:border-emerald-600"
+              className="mt-1 w-full rounded-md border border-[#dbe3ff] bg-white px-3 py-2 text-slate-900 outline-none focus:border-[#3358ff]"
             />
           </label>
           <label className="text-sm text-slate-700">
@@ -76,7 +76,7 @@ export default function EvalLeadForm() {
               type="email"
               name="email"
               placeholder="tunombre@correo.com"
-              className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:border-emerald-600"
+              className="mt-1 w-full rounded-md border border-[#dbe3ff] bg-white px-3 py-2 text-slate-900 outline-none focus:border-[#3358ff]"
             />
           </label>
         </div>
@@ -86,7 +86,7 @@ export default function EvalLeadForm() {
           <input
             name="phone"
             placeholder="+56 9 1234 5678"
-            className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:border-emerald-600"
+            className="mt-1 w-full rounded-md border border-[#dbe3ff] bg-white px-3 py-2 text-slate-900 outline-none focus:border-[#3358ff]"
           />
         </label>
 
@@ -95,8 +95,8 @@ export default function EvalLeadForm() {
           <textarea
             name="motivo"
             rows={4}
-            placeholder="Ej. deuda con casa comercial, llamados de cobranza, etc."
-            className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none focus:border-emerald-600"
+            placeholder="Ej. divorcio de común acuerdo en Ñuñoa, arriendo impago en Viña, despido injustificado."
+            className="mt-1 w-full rounded-md border border-[#dbe3ff] bg-white px-3 py-2 text-slate-900 outline-none focus:border-[#3358ff]"
           />
         </label>
 
@@ -111,12 +111,12 @@ export default function EvalLeadForm() {
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60"
+            className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#1f2d5c] via-[#3358ff] to-[#2bb8d6] px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:scale-105 disabled:opacity-60"
           >
-            {loading ? "Enviando…" : "Enviar evaluación"}
+            {loading ? "Enviando…" : "Enviar solicitud"}
           </button>
           <span className="text-xs text-slate-500">
-            * Con nombre + (email o teléfono) ya podemos ayudarte.
+            * Con nombre y un canal de contacto comenzamos el matching.
           </span>
         </div>
       </form>

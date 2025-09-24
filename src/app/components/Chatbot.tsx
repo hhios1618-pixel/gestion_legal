@@ -12,32 +12,31 @@ type Message = { role: "user" | "assistant"; content: string };
  * - No reinicia el saludo una vez comenzada la conversación
  * - 1 pregunta por turno, máximo 2 líneas
  * - Valida email/teléfono
- * - Cierra y emite <LEAD> cuando ya tiene nombre + contacto + motivo
- * - Acreedor, monto y comuna se compactan dentro de "motivo" (tu tabla sólo tiene 'motivo')
+ * - Cierra y emite <LEAD> cuando ya tiene nombre + contacto + caso legal
  */
-const SYSTEM_PROMPT = `Eres "LEX", Analista Legal Virtual de DeudaCero (Chile). Tu misión es CAPTURAR LEADS y derivarlos a ventas.
+const SYSTEM_PROMPT = `Eres "LEX", Concierge Legal Virtual de LexMatch (Chile). Tu misión es captar leads y conectar a cada persona con el estudio jurídico más adecuado.
 
 SLOTS OBLIGATORIOS (en este orden):
 1) nombre
 2) contacto (email válido O teléfono válido)
-3) motivo breve y útil (si puedes, agrega acreedor, monto aprox. y comuna/ciudad en la misma frase)
+3) caso (breve con materia legal, comuna/ciudad y urgencia si existe)
 
 REGLAS DURAS:
 - Presentación sólo en el primer turno. Nunca vuelvas a decir "Hola, soy LEX..." una vez iniciado.
 - UNA pregunta por turno. Mensajes breves (máx. 2 líneas).
 - Si un slot ya está en el historial, NO lo repitas: reconoce y avanza al siguiente.
 - Valida contacto:
-  • email: debe tener formato válido.
+  • email: formato válido.
   • teléfono: sólo dígitos (ignora espacios/guiones), 8–15 dígitos. Si es inválido, pide corrección o el otro canal.
 - No prometas plazos ni resultados específicos.
 - Nada de "tuve un problema técnico" salvo que el usuario lo exija.
-- Cuando tengas (nombre + contacto válido + motivo), CIERRA y EMITE EXACTAMENTE al FINAL:
-<LEAD>{"name":"NOMBRE","email":"EMAIL_o_null","phone":"PHONE_o_null","motivo":"MOTIVO"}</LEAD>
+- Cuando tengas (nombre + contacto válido + caso), CIERRA y EMITE EXACTAMENTE al FINAL:
+<LEAD>{"name":"NOMBRE","email":"EMAIL_o_null","phone":"PHONE_o_null","caso":"CASO"}</LEAD>
 
 TONO COMERCIAL (sin prometer):
-- "Es muy posible que podamos ayudarte; nuestro equipo evaluará tu caso y te propondrá la mejor salida."
+- "Es muy posible que podamos ayudarte; coordinaremos con un abogado o estudio verificado de nuestra red." 
 - Si falta contacto: "Gracias, [NOMBRE]. ¿Cuál es tu email o teléfono para coordinar?"
-- Si falta motivo: "¿Qué pasó con tu deuda? (DICOM, cobranza, prescripción). Si sabes: acreedor, monto aprox. y tu comuna."
+- Si falta caso: "¿Qué tipo de asunto legal necesitas resolver? (ej: arriendo, familia, laboral) Indica comuna y urgencia si puedes." 
 - Si contacto inválido: "Ese contacto no parece válido. ¿Puedes confirmarlo o compartir el otro canal?"
 
 IMPORTANTE:
@@ -61,7 +60,7 @@ export default function Chatbot() {
     {
       role: "assistant",
       content:
-        "Hola, soy LEX de DeudaCero. ¿Tienes problemas con deudas o DICOM? ¿Me dices tu nombre para ayudarte?",
+        "Hola, soy LEX de LexMatch. ¿Me dices tu nombre para ayudarte a coordinar con el equipo legal correcto?",
     },
   ]);
   const [unread, setUnread] = useState(0);
@@ -69,6 +68,7 @@ export default function Chatbot() {
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const pendingMatterRef = useRef<string | null>(null);
 
   // Auto-scroll
   useEffect(() => {
@@ -87,6 +87,41 @@ export default function Chatbot() {
       };
     }
   }, []);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const custom = event as CustomEvent<string | undefined>;
+      if (custom.detail) {
+        pendingMatterRef.current = custom.detail;
+        try {
+          localStorage.setItem('LEX_PREFILL', custom.detail);
+        } catch {}
+      }
+      openChatWindow();
+    };
+    window.addEventListener('open-lex-chat', handler as EventListener);
+    return () => window.removeEventListener('open-lex-chat', handler as EventListener);
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      try {
+        const stored = localStorage.getItem('LEX_PREFILL');
+        if (stored) {
+          pendingMatterRef.current = stored;
+        }
+      } catch {}
+      if (pendingMatterRef.current) {
+        const matter = pendingMatterRef.current;
+        const newGreeting = `Hola, soy LEX de LexMatch. Veo que necesitas apoyo en ${matter}. ¿Me dices tu nombre para ayudarte a coordinar el caso?`;
+        setMsgs([{ role: 'assistant', content: newGreeting }]);
+        pendingMatterRef.current = null;
+        try {
+          localStorage.removeItem('LEX_PREFILL');
+        } catch {}
+      }
+    }
+  }, [open]);
 
   // Badge no leídos
   useEffect(() => {
@@ -111,16 +146,25 @@ export default function Chatbot() {
     return () => window.removeEventListener("keydown", handler);
   }, [open]);
 
+  function openChatWindow() {
+    setOpen((prev) => {
+      if (prev) return prev;
+      setUnread(0);
+      setShowNudge(false);
+      sessionStorage.setItem("lex_seen", "1");
+      setTimeout(() => inputRef.current?.focus(), 50);
+      return true;
+    });
+  }
+
   function toggleOpen() {
     setOpen((v) => {
-      const next = !v;
-      if (next) {
-        setUnread(0);
-        setShowNudge(false);
-        sessionStorage.setItem("lex_seen", "1");
-        setTimeout(() => inputRef.current?.focus(), 50);
-      }
-      return next;
+      if (v) return false;
+      setUnread(0);
+      setShowNudge(false);
+      sessionStorage.setItem("lex_seen", "1");
+      setTimeout(() => inputRef.current?.focus(), 50);
+      return true;
     });
   }
 
@@ -169,10 +213,10 @@ export default function Chatbot() {
       {/* Nudge teaser */}
       {showNudge && (
         <div className="fixed bottom-24 right-5 z-[60] max-w-[260px] animate-fade-in-up">
-          <div className="rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-[0_8px_24px_rgba(2,6,23,0.12)]">
-            <div className="mb-1 font-semibold text-slate-900">¿Problemas con deudas?</div>
+          <div className="rounded-2xl border border-[#dbe3ff] bg-white px-4 py-3 text-sm text-slate-800 shadow-[0_12px_32px_rgba(15,23,42,0.12)]">
+            <div className="mb-1 font-semibold text-slate-900">¿Necesitas coordinación legal?</div>
             <div className="text-slate-600">
-              <span className="font-medium text-emerald-700">LEX</span> te ayuda a salir de DICOM y negociar tus deudas.
+              <span className="font-medium text-[#3358ff]">LEX</span> se encarga de conectar y dar seguimiento con estudios verificados.
             </div>
           </div>
         </div>
@@ -182,7 +226,7 @@ export default function Chatbot() {
       <button
         onClick={toggleOpen}
         aria-label="Abrir chat con LEX"
-        className="fixed bottom-5 right-5 z-[65] group flex items-center gap-3 rounded-full bg-gradient-to-r from-emerald-600 to-green-600 px-5 py-3 text-white shadow-xl ring-1 ring-emerald-400/30 transition hover:brightness-110 hover:scale-[1.02] animate-lex-pulse"
+        className="fixed bottom-5 right-5 z-[65] group flex items-center gap-3 rounded-full bg-gradient-to-r from-[#1f2d5c] via-[#3358ff] to-[#2bb8d6] px-5 py-3 text-white shadow-xl ring-1 ring-[#3358ff]/40 transition hover:brightness-[1.05] hover:scale-[1.02] animate-lex-pulse"
       >
         <span className="relative inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
           <MessageCircle size={22} />
@@ -194,7 +238,7 @@ export default function Chatbot() {
           )}
         </span>
         <span className="relative z-10 text-sm font-semibold tracking-tight">
-          ¿Deudas? <span className="hidden sm:inline">¡Te ayudamos!</span>
+          Equipo LexMatch
         </span>
       </button>
 
@@ -204,12 +248,12 @@ export default function Chatbot() {
           {/* Header */}
           <header className="flex flex-shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3">
             <div className="flex items-center gap-3">
-              <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow ring-1 ring-emerald-300/40">
+              <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#3358ff] to-[#2bb8d6] text-white shadow ring-1 ring-[#3358ff]/40">
                 <MessageCircle size={18} />
               </div>
               <div className="leading-tight">
-                <div className="text-sm font-semibold">LEX — DeudaCero Chile</div>
-                <div className="text-[11px] text-slate-500">Especialistas en deudas y DICOM</div>
+                <div className="text-sm font-semibold">LEX — LexMatch Chile</div>
+                <div className="text-[11px] text-slate-500">Coordinación y seguimiento garantizados</div>
               </div>
             </div>
             <button
@@ -231,7 +275,9 @@ export default function Chatbot() {
               >
                 <div
                   className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm shadow-sm ${
-                    m.role === "user" ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-900"
+                    m.role === "user"
+                      ? "bg-gradient-to-r from-[#1f2d5c] via-[#3358ff] to-[#2bb8d6] text-white"
+                      : "bg-[#eef1f9] text-slate-900"
                   }`}
                 >
                   {m.content}
@@ -251,13 +297,13 @@ export default function Chatbot() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && send()}
                 placeholder="Escribe tu consulta…"
-                className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-emerald-600"
+                className="flex-1 rounded-md border border-[#dbe3ff] bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-[#3358ff]"
                 aria-label="Mensaje para LEX"
               />
               <button
                 onClick={send}
                 disabled={isTyping || !input.trim()}
-                className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#1f2d5c] via-[#3358ff] to-[#2bb8d6] px-3 py-2 text-sm font-semibold text-white shadow transition hover:scale-105 disabled:opacity-50"
               >
                 <Send size={18} />
                 Enviar
@@ -286,15 +332,15 @@ export default function Chatbot() {
         @keyframes lex-pulse {
           0% {
             transform: translateZ(0) scale(1);
-            box-shadow: 0 12px 28px rgba(4, 120, 87, 0.25);
+            box-shadow: 0 14px 36px rgba(51, 88, 255, 0.28);
           }
           50% {
-            transform: translateZ(0) scale(1.03);
-            box-shadow: 0 16px 38px rgba(4, 120, 87, 0.35);
+            transform: translateZ(0) scale(1.04);
+            box-shadow: 0 18px 44px rgba(43, 184, 214, 0.32);
           }
           100% {
             transform: translateZ(0) scale(1);
-            box-shadow: 0 12px 28px rgba(4, 120, 87, 0.25);
+            box-shadow: 0 14px 36px rgba(51, 88, 255, 0.28);
           }
         }
         .animate-lex-pulse {

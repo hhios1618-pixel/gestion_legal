@@ -21,9 +21,9 @@ export default function BotonAbrirChat() {
     <button
       type="button"
       onClick={handleClick}
-      className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+      className="mt-3 inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[#1f2d5c] via-[#3358ff] to-[#2bb8d6] px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:scale-105"
     >
-      Hablar con un asesor ahora
+      Hablar con el equipo LexMatch
     </button>
   );
 }

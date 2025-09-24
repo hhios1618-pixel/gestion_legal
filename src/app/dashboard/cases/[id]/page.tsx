@@ -5,12 +5,14 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AttachmentsCard from '@/app/components/AttachmentsCard';
 import {
-  FileText,
+  ArrowRight,
   BadgeCheck,
-  User2,
   Building2,
   ClipboardList,
-  ExternalLink
+  ExternalLink,
+  FileText,
+  FolderKanban,
+  User2,
 } from 'lucide-react';
 
 const ESTADOS = ['nuevo', 'en_proceso', 'cerrado'] as const;
@@ -34,11 +36,7 @@ function EstadoPill({ estado }: { estado: string }) {
     cerrado: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
   };
   return (
-    <span
-      className={`px-2.5 py-1 rounded-full text-[12px] font-medium capitalize ${
-        map[estado] ?? 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'
-      }`}
-    >
+    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-medium capitalize ${map[estado] ?? 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'}`}>
       {estado?.replace('_', ' ') || '—'}
     </span>
   );
@@ -54,13 +52,11 @@ export default function CaseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // form state (editable)
   const [estado, setEstado] = useState('nuevo');
   const [descripcion, setDescripcion] = useState('');
-  const [notaInterna, setNotaInterna] = useState(''); // requiere columna `nota_interna` en `cases`
+  const [notaInterna, setNotaInterna] = useState('');
   const [abogadoId, setAbogadoId] = useState('');
 
-  // nuevo evento
   const [evType, setEvType] = useState('ingreso');
   const [evDetail, setEvDetail] = useState('');
 
@@ -68,25 +64,25 @@ export default function CaseDetailPage() {
     (async () => {
       setLoading(true);
       try {
-        const [cr, ur, er] = await Promise.all([
+        const [caseRes, usersRes, eventsRes] = await Promise.all([
           fetch(`/api/cases/${id}`, { cache: 'no-store' }),
           fetch('/api/users', { cache: 'no-store' }),
           fetch(`/api/case-events?case_id=${id}`, { cache: 'no-store' }),
         ]);
 
-        const cjson = await cr.json();
-        const ujson = await ur.json();
-        const ejson = await er.json();
+        const caseJson = await caseRes.json();
+        const usersJson = await usersRes.json();
+        const eventsJson = await eventsRes.json();
 
-        setItem(cjson.item ?? null);
-        setUsers(ujson.items ?? []);
-        setEvents(ejson.items ?? []);
+        setItem(caseJson.item ?? null);
+        setUsers(usersJson.items ?? []);
+        setEvents(eventsJson.items ?? []);
 
-        if (cjson.item) {
-          setEstado(cjson.item.estado ?? 'nuevo');
-          setDescripcion(cjson.item.descripcion ?? '');
-          setNotaInterna(cjson.item.nota_interna ?? ''); // comenta esta línea si aún no tienes la columna
-          setAbogadoId(cjson.item.abogado?.id ?? '');
+        if (caseJson.item) {
+          setEstado(caseJson.item.estado ?? 'nuevo');
+          setDescripcion(caseJson.item.descripcion ?? '');
+          setNotaInterna(caseJson.item.nota_interna ?? '');
+          setAbogadoId(caseJson.item.abogado?.id ?? '');
         }
       } finally {
         setLoading(false);
@@ -106,8 +102,6 @@ export default function CaseDetailPage() {
         estado,
         descripcion: descripcion || null,
         abogado_id: abogadoId || null,
-        // si tu API/DB ya tiene columna `nota_interna`, mantenla;
-        // si NO la tienes aún, borra esta línea:
         nota_interna: notaInterna || null,
       };
 
@@ -152,54 +146,50 @@ export default function CaseDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_8px_30px_rgba(2,6,23,0.06)]">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <header className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-[0_16px_40px_rgba(2,6,23,0.08)] backdrop-blur">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-500">Caso</span>
-              <EstadoPill estado={estado} />
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.25em] text-slate-500">
+              <FolderKanban size={14} /> Caso
             </div>
-            <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-slate-900">
+            <h1 className="mt-2 text-[26px] font-semibold tracking-tight text-slate-900">
               {item.short_code}{' '}
               <span className="font-normal text-slate-500">— {item.lead?.name ?? '—'}</span>
             </h1>
-            <p className="mt-0.5 text-sm text-slate-500">
-              Creado: {item.created_at ? new Date(item.created_at).toLocaleString('es-CL') : '—'}
+            <p className="text-xs text-slate-500">
+              Creado el {item.created_at ? new Date(item.created_at).toLocaleString('es-CL') : '—'}
             </p>
           </div>
-
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid gap-2 text-sm text-slate-700">
             <Link
               href="https://oficinajudicialvirtual.pjud.cl"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-white px-3 py-2 text-[12px] font-medium text-sky-700 shadow-sm transition-colors hover:border-sky-300 hover:text-sky-800"
-              title="Oficina Judicial Virtual"
+              className="inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-white px-3 py-2 text-[12px] font-medium text-sky-700 shadow-sm transition hover:border-sky-300 hover:text-sky-800"
             >
-              Ir a OJV
+              Oficina Judicial Virtual
               <ExternalLink className="h-3.5 w-3.5" />
             </Link>
-            <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700 ring-1 ring-slate-200">
-              Lead: {item.lead?.short_code ?? '—'}
+            <span className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[12px] text-slate-700">
+              <User2 size={14} /> Lead: {item.lead?.short_code ?? '—'}
             </span>
           </div>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Columna izquierda */}
-        <div className="space-y-6 lg:col-span-2">
-          {/* Datos & edición */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_8px_30px_rgba(2,6,23,0.05)]">
-            <div className="mb-4 flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-slate-600" />
-              <h3 className="font-semibold text-slate-900">Datos del caso</h3>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[2fr_1fr]">
+        <div className="space-y-6">
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                <BadgeCheck size={16} className="text-slate-600" /> Información del caso
+              </div>
+              <EstadoPill estado={estado} />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <label className="text-sm text-slate-700">
-                Estado
+                Estado procesal
                 <select
                   value={estado}
                   onChange={(e) => setEstado(e.target.value)}
@@ -220,7 +210,7 @@ export default function CaseDetailPage() {
                   onChange={(e) => setAbogadoId(e.target.value)}
                   className="mt-1 w-full rounded-md border border-slate-200 bg-white p-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-200"
                 >
-                  <option value="">—</option>
+                  <option value="">Sin asignar</option>
                   {users.map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.name}
@@ -230,68 +220,87 @@ export default function CaseDetailPage() {
               </label>
             </div>
 
-            <label className="mt-3 block text-sm text-slate-700">
-              Descripción (visible al equipo)
-              <textarea
-                value={descripcion}
-                onChange={(e) => setDescripcion(e.target.value)}
-                rows={4}
-                className="mt-1 w-full rounded-md border border-slate-200 bg-white p-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                placeholder="Descripción general / síntesis del caso…"
-              />
-            </label>
+                <label className="mt-4 block text-sm text-slate-700">
+                  Resumen / estrategia
+                  <textarea
+                    value={descripcion}
+                    onChange={(e) => setDescripcion(e.target.value)}
+                    placeholder="Describe la situación actual, acuerdos con el cliente y próximos pasos."
+                    className="mt-1 w-full min-h-28 rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-sky-100"
+                  />
+                </label>
 
-            {/* Nota interna del abogado (privada) */}
-            <label className="mt-3 block text-sm text-slate-700">
-              Nota interna del abogado (privada)
-              <textarea
-                value={notaInterna}
-                onChange={(e) => setNotaInterna(e.target.value)}
-                rows={3}
-                className="mt-1 w-full rounded-md border border-slate-200 bg-white p-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                placeholder="Observaciones privadas, hipótesis, riesgos, tareas, etc."
-              />
-            </label>
+                <label className="block text-sm text-slate-700">
+                  Notas internas
+                  <textarea
+                    value={notaInterna}
+                    onChange={(e) => setNotaInterna(e.target.value)}
+                    placeholder="Usa este espacio para bitácora interna, acuerdos, pendientes, etc."
+                    className="mt-1 w-full min-h-24 rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-sky-100"
+                  />
+                </label>
 
-            <div className="mt-4 flex flex-wrap items-center gap-3">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <button
-                onClick={saveCase}
+                onClick={() => void saveCase()}
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-emerald-600 to-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-emerald-500/30 transition hover:brightness-110 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#1f2d5c] via-[#3358ff] to-[#2bb8d6] px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 disabled:opacity-50"
               >
-                <BadgeCheck className="h-4 w-4" />
-                {saving ? 'Guardando…' : 'Guardar cambios'}
+                Guardar cambios
               </button>
-
-              {abogadoName && (
-                <span className="text-xs text-slate-500">
-                  Asignado a <span className="font-medium text-slate-700">{abogadoName}</span>
-                </span>
-              )}
+              <span className="text-xs text-slate-500">Última edición por {abogadoName || 'coord. sin asignar'}</span>
             </div>
           </section>
 
-          {/* Timeline */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_8px_30px_rgba(2,6,23,0.05)]">
-            <div className="mb-4 flex items-center gap-2">
-              <FileText className="h-4 w-4 text-slate-600" />
-              <h3 className="font-semibold text-slate-900">Línea de tiempo</h3>
-            </div>
-
+          {/* Eventos */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
+              <ClipboardList size={16} className="text-slate-600" /> Bitácora procesal
+            </h3>
             <div className="space-y-3">
-              {events.map((ev: any) => (
-                <div key={ev.id} className="rounded-lg border border-slate-200 p-3">
-                  <div className="text-xs text-slate-500">
-                    {ev.type}{' '}
-                    <span className="opacity-70">
-                      • {new Date(ev.event_date || ev.created_at).toLocaleString('es-CL')}
-                    </span>
-                  </div>
-                  <div className="text-slate-800">{ev.detail}</div>
-                </div>
-              ))}
-              {events.length === 0 && (
-                <div className="text-sm text-slate-500">Aún no hay eventos.</div>
+              <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-sm text-slate-700 sm:flex-row sm:items-center">
+                <select
+                  value={evType}
+                  onChange={(e) => setEvType(e.target.value)}
+                  className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-200 sm:w-48"
+                >
+                  {EVENT_TYPES.map((ev) => (
+                    <option key={ev} value={ev}>
+                      {ev.replace('_', ' ')}
+                    </option>
+                  ))}
+                </select>
+                <textarea
+                  value={evDetail}
+                  onChange={(e) => setEvDetail(e.target.value)}
+                  placeholder="Detalle del hito o gestión"
+                  className="h-16 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                />
+                <button
+                  type="button"
+                  onClick={() => addEvent()}
+                  className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  Registrar
+                </button>
+              </div>
+
+              {events.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                  Aún no se registran hitos para este caso.
+                </p>
+              ) : (
+                <ul className="space-y-3">
+                  {events.map((ev) => (
+                    <li key={ev.id} className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                      <div className="flex items-center justify-between text-[12px] text-slate-500">
+                        <span className="font-semibold text-slate-900">{ev.type.replace('_', ' ')}</span>
+                        <span>{ev.event_date ? new Date(ev.event_date).toLocaleString('es-CL') : '—'}</span>
+                      </div>
+                      <p className="mt-1 text-sm text-slate-700">{ev.detail}</p>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           </section>
@@ -299,84 +308,47 @@ export default function CaseDetailPage() {
 
         {/* Columna derecha */}
         <div className="space-y-6">
-          {/* Registrar evento */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_8px_30px_rgba(2,6,23,0.05)]">
-            <div className="mb-3 flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-slate-600" />
-              <h3 className="font-semibold text-slate-900">Registrar evento</h3>
-            </div>
-
-            <label className="text-sm text-slate-700">
-              Tipo
-              <select
-                value={evType}
-                onChange={(e) => setEvType(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-200 bg-white p-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-200"
-              >
-                {EVENT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t.replace('_', ' ')}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="mt-3 text-sm text-slate-700">
-              Detalle
-              <textarea
-                value={evDetail}
-                onChange={(e) => setEvDetail(e.target.value)}
-                rows={3}
-                className="mt-1 w-full rounded-md border border-slate-200 bg-white p-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                placeholder="Describe brevemente la gestión realizada…"
-              />
-            </label>
-
-            <button
-              onClick={addEvent}
-              className="mt-3 inline-flex items-center rounded-md bg-gradient-to-r from-sky-600 to-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-blue-500/30 transition hover:brightness-110"
-            >
-              Guardar evento
-            </button>
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
+              <User2 size={16} className="text-slate-600" /> Datos del cliente
+            </h3>
+            <dl className="space-y-3 text-sm text-slate-700">
+              <InfoRow label="Nombre" value={item.lead?.name ?? '—'} />
+              <InfoRow label="Código lead" value={item.lead?.short_code ?? '—'} />
+              <InfoRow label="Abogado asignado" value={abogadoName || 'Sin asignar'} />
+            </dl>
           </section>
 
-          {/* Ficha del lead */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_8px_30px_rgba(2,6,23,0.05)]">
-            <div className="mb-3 flex items-center gap-2">
-              <User2 className="h-4 w-4 text-slate-600" />
-              <h3 className="font-semibold text-slate-900">Ficha del Lead</h3>
-            </div>
-            <InfoRow label="Código" value={item.lead?.short_code ?? '—'} />
-            <InfoRow label="Nombre" value={item.lead?.name ?? '—'} />
-            <InfoRow label="Email" value={item.lead?.email ?? '—'} />
-            <InfoRow label="Teléfono" value={item.lead?.phone ?? '—'} />
-            <InfoRow
-              label="Canal / Fuente"
-              value={`${item.lead?.channel ?? '—'} / ${item.lead?.source ?? '—'}`}
-            />
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+              <Building2 size={16} className="text-slate-600" /> Recursos para el abogado
+            </h3>
+            <ul className="mt-3 space-y-2 text-sm text-slate-600">
+              <li>• Plantillas de escritos: demanda, contestación, recurso.</li>
+              <li>• Enlaces a jurisprudencia reciente.</li>
+              <li>• Directorio de peritos y notarios sugeridos.</li>
+              <li>• Política de comunicación con clientes LexMatch.</li>
+            </ul>
           </section>
 
-          {/* Adjuntos del caso + heredados del lead */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-0 shadow-[0_8px_30px_rgba(2,6,23,0.05)]">
-            <AttachmentsCard
-              ownerType="case"
-              ownerId={item.id}
-              alsoFromLeadId={item.lead?.id} // <- unifica adjuntos caso + lead (con etiqueta de origen)
-              title="Documentación del Caso"
-              description="Incluye archivos del caso y los heredados desde el lead de origen."
-            />
-          </section>
+          <AttachmentsCard
+            ownerId={id}
+            ownerType="case"
+            alsoFromLeadId={item.lead_id ?? undefined}
+            title="Documentos del caso"
+            description="Agrega minutas, escritos y respaldo compartido con el equipo."
+          />
         </div>
       </div>
     </div>
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="text-sm">
-      <div className="text-slate-500">{label}</div>
-      <div className="text-slate-800">{value}</div>
+    <div>
+      <dt className="text-xs uppercase tracking-wide text-slate-500">{label}</dt>
+      <dd className="text-sm font-medium text-slate-800">{value}</dd>
     </div>
   );
 }

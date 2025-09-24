@@ -31,21 +31,21 @@ const itemVariants: Variants = {
 
 export default function Guarantee() {
   return (
-    <section className="bg-slate-50 py-16 sm:py-24">
+    <section className="bg-[#eef1f9] py-16 sm:py-24">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <motion.div
-          className="relative mx-auto grid max-w-2xl grid-cols-1 items-center gap-x-16 gap-y-12 rounded-2xl border border-slate-200 bg-white p-8 shadow-lg lg:max-w-none lg:grid-cols-2 lg:p-12"
+          className="relative mx-auto grid max-w-2xl grid-cols-1 items-center gap-x-16 gap-y-12 rounded-3xl border border-[#d9e1ff] bg-white/90 p-8 shadow-[0_26px_60px_rgba(15,23,42,0.08)] backdrop-blur lg:max-w-none lg:grid-cols-2 lg:p-12"
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.5 }}
         >
-          <ShieldCheck className="absolute -top-8 -left-8 h-24 w-24 text-blue-50 opacity-80" />
+          <ShieldCheck className="absolute -top-10 -left-10 h-28 w-28 text-[#dbe3ff]" />
 
           <div className="relative">
             <motion.p
               variants={itemVariants}
-              className="font-semibold text-blue-600"
+              className="font-semibold uppercase tracking-[0.45em] text-[#1f2d5c]"
             >
               NUESTRO COMPROMISO
             </motion.p>
@@ -53,13 +53,13 @@ export default function Guarantee() {
               variants={itemVariants}
               className="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl"
             >
-              Garantía Visible
+              Operaciones legales custodiadas por LexMatch
             </motion.h2>
             <motion.p
               variants={itemVariants}
               className="mt-4 text-lg text-slate-600"
             >
-              Recuperamos tu historial y tu tranquilidad financiera con soluciones legales claras y efectivas. Sin letra chica, solo resultados reales
+              Somos tu punto de contacto único: damos seguimiento a agendas, entregables y SLA. Si el estudio asignado no avanza, intervenimos, reasignamos y preservamos la trazabilidad con el respaldo de LexMatch.
             </motion.p>
           </div>
 
@@ -69,9 +69,9 @@ export default function Guarantee() {
           >
             <Link
               href="/evaluacion"
-              className="group flex w-full items-center justify-center gap-x-3 rounded-lg bg-blue-700 px-8 py-4 text-base font-semibold text-white shadow-sm transition-all duration-300 ease-in-out hover:bg-blue-800 hover:shadow-lg hover:scale-105 sm:w-auto"
+              className="group flex w-full items-center justify-center gap-x-3 rounded-full bg-gradient-to-r from-[#1f2d5c] via-[#3358ff] to-[#2bb8d6] px-8 py-4 text-base font-semibold text-white shadow-lg transition-all duration-300 ease-in-out hover:scale-105 sm:w-auto"
             >
-              Quiero salir de DICOM
+              Habla con el equipo LexMatch
               <ArrowRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
           </motion.div>

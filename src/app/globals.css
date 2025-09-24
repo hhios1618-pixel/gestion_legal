@@ -37,19 +37,22 @@
 
 /* ---- Tokens ---- */
 :root {
-  --bg: #ffffff;
-  --fg: #0f172a;
-  --muted: #475569;
-  --line: #e5e7eb;
+  --bg: #f5f7fb;
+  --fg: #0b1424;
+  --muted: #4c5a74;
+  --line: #e2e6f2;
 
-  --brand-50:#eff9ff; --brand-100:#dff2ff; --brand-200:#b9e6ff; --brand-300:#7fd3ff;
-  --brand-400:#3ebeef; --brand-500:#199bd8; --brand-600:#127fba; --brand-700:#106a9a;
-  --brand-800:#0f577e; --brand-900:#0e4868;
+  --brand-50:#eef3ff; --brand-100:#dae4ff; --brand-200:#b7ccff; --brand-300:#8aaeff;
+  --brand-400:#5a8cff; --brand-500:#3358ff; --brand-600:#2746d6; --brand-700:#1f37ad;
+  --brand-800:#1b2f8a; --brand-900:#182871;
+
+  --accent-500:#2bb8d6;
+  --highlight-500:#f6a44c;
 
   --radius: 14px;
-  --shadow-subtle: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.10);
-  --shadow-card:   0 2px 8px rgba(16,24,40,.08), 0 10px 20px rgba(16,24,40,.06);
-  --ring: 25 155 216; /* brand-500 */
+  --shadow-subtle: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-card:   0 16px 40px rgba(15, 23, 42, 0.08);
+  --ring: 51 88 255; /* brand-500 */
 }
 
 html, body {
@@ -94,18 +97,18 @@ html, body {
 }
 .btn:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(var(--ring)/.25); }
 
-.btn-primary { background: var(--brand-500); color: #fff; }
-.btn-primary:hover { background: var(--brand-600); transform: translateY(-1px); }
+.btn-primary { background: linear-gradient(135deg, var(--brand-500), var(--accent-500)); color: #fff; }
+.btn-primary:hover { background: linear-gradient(135deg, var(--brand-600), var(--accent-500)); transform: translateY(-1px); }
 .btn-primary:active { transform: translateY(0); }
 
 .btn-ghost { background:#fff; border-color: var(--line); color: var(--fg); }
 .btn-ghost:hover { background:#f8fafc; border-color:#dbe0e6; }
 
 .btn-soft {
-  background: color-mix(in srgb, var(--brand-500) 12%, white);
-  color: var(--brand-700); border-color: color-mix(in srgb, var(--brand-500) 22%, white);
+  background: color-mix(in srgb, var(--brand-500) 14%, white);
+  color: var(--brand-700); border-color: color-mix(in srgb, var(--brand-500) 26%, white);
 }
-.btn-soft:hover { background: color-mix(in srgb, var(--brand-500) 16%, white); }
+.btn-soft:hover { background: color-mix(in srgb, var(--brand-500) 18%, white); }
 
 /* ---- Inputs ---- */
 .input, .select, .textarea {

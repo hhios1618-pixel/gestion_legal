@@ -16,7 +16,14 @@ export async function POST(req: NextRequest) {
     const form = await req.formData();
     const owner_type = String(form.get('owner_type') || '').trim();
     const owner_id = String(form.get('owner_id') || '').trim();
-    const files = form.getAll('files') as File[];
+    const multi = form.getAll('files') as File[];
+    let files: File[] = multi.filter((f): f is File => f instanceof File);
+    if (!files.length) {
+      const maybeSingle = form.get('file');
+      if (maybeSingle instanceof File) {
+        files = [maybeSingle];
+      }
+    }
 
     if (!owner_type || !owner_id) {
       return NextResponse.json({ error: 'owner_type y owner_id son requeridos' }, { status: 400 });

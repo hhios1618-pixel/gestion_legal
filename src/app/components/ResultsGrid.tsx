@@ -28,40 +28,43 @@ type StatusConfig = {
 
 // --- 2. Datos de Casos (Completos) ---
 const CASES: CaseResult[] = [
-  { 
-    caseId: "CL-2024-0812",
-    headline: "Prescripción Extintiva de Deuda", 
-    summary: "Se argumentó la prescripción de la acción de cobro ante tribunales.",
-    detail: "Tras analizar los plazos legales, se interpuso una demanda de prescripción extintiva contra la entidad acreedora. El tribunal acogió nuestros argumentos, emitiendo una sentencia favorable que declaró la deuda como legalmente incobrable. Se procedió a oficiar al Boletín Comercial para la eliminación permanente y definitiva del registro, liberando al cliente de toda obligación.",
-    timeline: "45 Días Hábiles",
+  {
+    caseId: "CL-2025-FAM-021",
+    headline: "Plan parental homologado",
+    summary: "Concierge LexMatch coordinó mediación familiar y homologación en tribunal de Santiago.",
+    detail:
+      "La clienta ingresó su caso por custodia compartida. LexMatch presentó dos estudios verificados, se eligió un equipo experto en mediaciones sensibles y se calendarizaron sesiones virtuales. Tras tres reuniones, se logró un acuerdo integral y el tribunal homologó el plan parental en 37 días.",
+    timeline: "37 Días",
     status: "success",
-    metric: "Deuda Extinguida"
+    metric: "Acuerdo homologado"
   },
-  { 
-    caseId: "CL-2024-0745",
-    headline: "Acuerdo en Juicio Ejecutivo", 
-    summary: "Negociación directa con abogados de la parte demandante.",
-    detail: "En pleno proceso de cobranza judicial, nuestro equipo de litigantes tomó contacto directo con los abogados del acreedor. Se presentó una contrapropuesta sólida, resultando en un acuerdo de pago con una condonación del 72% de la deuda total, incluyendo intereses y costas procesales. El acuerdo fue ratificado judicialmente, cerrando el caso de forma favorable.",
-    timeline: "28 Días Hábiles",
+  {
+    caseId: "CL-2025-ARR-014",
+    headline: "Desalojo con restitución",
+    summary: "Dueña de departamento recupera inmueble y LexMatch controla el plan de pagos.",
+    detail:
+      "El estudio propuesto por LexMatch presentó demanda de terminación y medida precautoria. Nuestro equipo documentó daños, gestionó el comparendo virtual y supervisó el calendario de pagos. El arrendatario restituyó el inmueble y se pactó pago en cuotas monitoreadas.",
+    timeline: "52 Días",
     status: "resolved",
-    metric: "72% Condonación"
+    metric: "Inmueble recuperado"
   },
-  { 
-    caseId: "CL-2024-0691",
-    headline: "Abandono del Procedimiento", 
-    summary: "Se solicitó el archivo de la causa por inactividad del acreedor.",
-    detail: "Se realizó un seguimiento exhaustivo de la causa judicial, detectando inactividad procesal por parte del demandante por un período superior al legal. Se redactó y presentó un escrito solicitando el abandono del procedimiento, el cual fue acogido por el tribunal, resultando en el archivo definitivo de la causa y el cese completo de la acción de cobro.",
-    timeline: "60 Días Hábiles",
+  {
+    caseId: "CL-2024-LAB-088",
+    headline: "Indemnización laboral completa",
+    summary: "Trabajador despedido obtiene indemnización completa con seguimiento LexMatch.",
+    detail:
+      "Se asignó un estudio laboral con disponibilidad inmediata en Valparaíso. LexMatch coordinó la confección de la demanda y reunió antecedentes en la plataforma. En audiencia se pactó indemnización por años de servicio con recargo del 30% y regularización de cotizaciones.",
+    timeline: "41 Días",
     status: "closed",
-    metric: "Caso Archivado"
+    metric: "Pago 130%"
   },
 ];
 
 // --- 3. Configuración de Estilos (Completa y Tipada) ---
 const statusConfig: Record<CaseStatus, StatusConfig> = {
-  success: { label: "Éxito Total", color: "text-green-400", bg: "bg-green-500/10", icon: CheckCircle },
-  resolved: { label: "Resuelto Favorablemente", color: "text-blue-400", bg: "bg-blue-500/10", icon: Scale },
-  closed: { label: "Caso Cerrado", color: "text-indigo-400", bg: "bg-indigo-500/10", icon: Archive }
+  success: { label: "Entrega completada", color: "text-[#4ade80]", bg: "bg-[#4ade80]/15", icon: CheckCircle },
+  resolved: { label: "Caso resuelto", color: "text-[#60a5fa]", bg: "bg-[#60a5fa]/15", icon: Scale },
+  closed: { label: "Cierre con seguimiento", color: "text-[#a78bfa]", bg: "bg-[#a78bfa]/15", icon: Archive }
 };
 
 const containerVariants: Variants = {
@@ -79,7 +82,7 @@ export default function ResultsGrid() {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(0);
 
   return (
-    <section className="bg-slate-900 py-24 sm:py-32">
+    <section className="bg-[#101a3b] py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
@@ -88,12 +91,12 @@ export default function ResultsGrid() {
           transition={{ duration: 0.8 }}
           className="text-center"
         >
-          <h2 className="text-base font-semibold leading-7 text-blue-400">Resultados Verificables</h2>
-          <p className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Línea de Tiempo de Victorias Legales
+          <h2 className="text-base font-semibold uppercase tracking-[0.35em] text-[#8fa2ff]">Casos reales LexMatch</h2>
+          <p className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            De la solicitud al resultado coordinado
           </p>
-          <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-slate-300">
-            Nuestro historial no es una lista, es una cronología de éxito. Cada punto en esta línea representa un caso resuelto y la tranquilidad recuperada de un cliente. Explore los expedientes para ver nuestra metodología en acción.
+          <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-[#b9c5ff]">
+            Historias de clientes que delegaron la operación legal en LexMatch. Muestra cómo combinamos especialistas, tecnología y un equipo de coordinación que asegura respuestas y escalamiento oportuno.
           </p>
         </motion.div>
 
@@ -101,7 +104,7 @@ export default function ResultsGrid() {
         <div className="mt-20">
           <div className="relative">
             {/* La línea de tiempo horizontal */}
-            <div className="absolute top-5 left-0 h-0.5 w-full bg-slate-700"></div>
+            <div className="absolute top-5 left-0 h-0.5 w-full bg-white/10"></div>
             
             <motion.div
               variants={containerVariants}
@@ -135,21 +138,21 @@ function TimelineItem({ caseData, isExpanded, onClick }: { caseData: CaseResult,
     <motion.div variants={itemVariants} className="relative flex flex-col items-start">
       {/* Nodo en la línea de tiempo */}
       <div className="relative z-10">
-        <div className={`h-10 w-10 rounded-full grid place-items-center ${isExpanded ? 'bg-blue-500' : 'bg-slate-800 ring-4 ring-slate-900'}`}>
-          <Icon className={`h-5 w-5 ${isExpanded ? 'text-white' : 'text-slate-400'}`} />
+        <div className={`grid h-10 w-10 place-items-center rounded-full ${isExpanded ? 'bg-gradient-to-br from-[#3358ff] to-[#2bb8d6]' : 'bg-white/10 ring-4 ring-[#101a3b]'}`}>
+          <Icon className={`h-5 w-5 ${isExpanded ? 'text-white' : 'text-[#8fa2ff]'}`} />
         </div>
       </div>
 
       {/* Tarjeta de Contenido */}
       <motion.div 
         layout
-        className="mt-6 w-full rounded-xl bg-slate-800/80 ring-1 ring-white/10"
+        className="mt-6 w-full rounded-xl bg-white/10 ring-1 ring-white/20 backdrop-blur-xl"
         transition={{ layout: { duration: 0.4, ease: "easeOut" } }}
       >
         <div className="p-6">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-white">{caseData.headline}</h3>
-            <button onClick={onClick} className="flex-shrink-0 grid h-7 w-7 place-items-center rounded-full bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-white transition-all">
+            <button onClick={onClick} className="flex-shrink-0 grid h-7 w-7 place-items-center rounded-full bg-white/10 text-[#8fa2ff] transition-all hover:bg-white/20 hover:text-white">
               {isExpanded ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             </button>
           </div>
@@ -162,15 +165,15 @@ function TimelineItem({ caseData, isExpanded, onClick }: { caseData: CaseResult,
                 exit={{ opacity: 0, height: 0, marginTop: 0 }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
               >
-                <div className="border-t border-white/10 pt-6">
-                  <p className="text-slate-300">{caseData.detail}</p>
-                  <div className="mt-6 grid grid-cols-2 gap-4 rounded-lg bg-slate-900/50 p-4 ring-1 ring-white/10">
+                <div className="border-t border-white/15 pt-6">
+                  <p className="text-[#e2e6f2]">{caseData.detail}</p>
+                  <div className="mt-6 grid grid-cols-2 gap-4 rounded-lg bg-[#101a3b]/60 p-4 ring-1 ring-white/15">
                     <div>
-                      <p className="text-xs text-slate-400">Plazo Resolución</p>
+                      <p className="text-xs text-[#9fb2ff]">Plazo resolución</p>
                       <p className="font-semibold text-white">{caseData.timeline}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-400">Resultado Clave</p>
+                      <p className="text-xs text-[#9fb2ff]">Resultado clave</p>
                       <p className="font-semibold text-white">{caseData.metric}</p>
                     </div>
                   </div>

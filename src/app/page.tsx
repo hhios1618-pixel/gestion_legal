@@ -12,9 +12,9 @@ import Footer from "./components/Footer";
 import Chatbot from "./components/Chatbot"; // 👈 flotante
 
 export const metadata = {
-  title: "DeudasCero — Defensa legal y evaluación sin costo",
+  title: "LexMatch — Plataforma de coordinación legal",
   description:
-    "Defensa legal experta para eliminar deudas. Cada caso se evalúa de forma particular. Agenda tu evaluación.",
+    "Conecta tus asuntos legales con estudios verificados en Chile. LexMatch coordina respuestas, documentación y avances desde un solo panel.",
 };
 
 export default function HomePage() {
@@ -25,19 +25,22 @@ export default function HomePage() {
         <Hero />
 
         {/* Los IDs deben coincidir con los del Navbar */}
-        <ComoSaberDicom />
+        <section id="como-funciona">
+          <ComoSaberDicom />
+        </section>
+
         <TrustBar />
         <SocialProof />
 
-        <section id="metodologia">
+        <section id="especialidades">
           <Benefits />
         </section>
 
-        <section id="resultados">
+        <section id="casos">
           <ResultsGrid />
         </section>
 
-        <section id="garantia">
+        <section id="confianza">
           <Guarantee />
         </section>
 

@@ -17,7 +17,7 @@ export default function SocialProof() {
 
   useEffect(() => {
     if (isInView && countRef.current) {
-      const controls = animate(0, 50000, {
+      const controls = animate(0, 15000, {
         duration: 2.5,
         ease: "easeOut",
         onUpdate(value) {
@@ -32,7 +32,7 @@ export default function SocialProof() {
   }, [isInView]);
 
   return (
-    <section ref={sectionRef} className="bg-white py-20 sm:py-28 overflow-hidden">
+    <section ref={sectionRef} className="overflow-hidden bg-white py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -42,17 +42,17 @@ export default function SocialProof() {
           className="mx-auto max-w-3xl text-center"
         >
           <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
-            Únete a los más de{" "}
-            <span className="inline-block">
+            Conexiones legales activadas por LexMatch
+            <br />
+            <span className="inline-block text-[#3358ff]">
               <span ref={countRef}>0</span>+
             </span>
-            <br />
-            chilenos que ya recuperaron su tranquilidad
+            coordinaciones gestionadas con SLA
           </h2>
           <p className="mt-6 text-lg leading-8 text-slate-600">
-            Nuestra trayectoria y la confianza de miles de clientes nos avalan. Medios de
-            comunicación de todo el país han destacado nuestro trabajo como el estudio jurídico
-            líder en la defensa de deudores en Chile.
+            Empresas, familias y estudios confían en LexMatch para centralizar comunicación, validar entregables
+            y mantener la experiencia del cliente bajo control. Medios y rankings legales destacan nuestro modelo
+            como la forma más moderna de contratar asesoría jurídica con garantía operativa.
           </p>
         </motion.div>
       </div>

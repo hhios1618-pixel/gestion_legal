@@ -10,10 +10,10 @@ import Image from "next/image";
 
 // --- Datos de los enlaces de navegación ---
 const navLinks = [
-  { title: "Metodología", id: "metodologia" },
-  { title: "Resultados", id: "resultados" },
-  { title: "Garantía", id: "garantia" },
-  { title: "Preguntas", id: "faq" },
+  { title: "Plataforma", id: "como-funciona" },
+  { title: "Servicios", id: "especialidades" },
+  { title: "Casos", id: "casos" },
+  { title: "Garantías", id: "confianza" },
   { title: "Contacto", id: "contacto" },
 ];
 
@@ -57,32 +57,20 @@ export default function Navbar() {
     }
   };
 
-  const linkColor =
-    scrolled || isMenuOpen
-      ? "text-slate-300 hover:text-white"
-      : "text-slate-700 hover:text-slate-900";
-  const mobileIconColor = isMenuOpen
-    ? "text-white"
-    : scrolled
-    ? "text-white"
-    : "text-slate-900";
+  const linkColor = "text-[#cbd6ff] hover:text-white";
+  const mobileIconColor = isMenuOpen ? "text-white" : "text-white";
 
   return (
     <header
-      className={`sticky top-0 z-50 transition-all duration-300 border-b
-        ${
-          scrolled || isMenuOpen
-            ? "bg-slate-900/80 backdrop-blur-lg border-white/10 shadow-lg"
-            : "bg-transparent border-transparent"
-        }`}
+      className={`sticky top-0 z-50 border-b border-white/10 bg-[#0c1733]/95 shadow-[0_12px_30px_rgba(12,23,51,0.35)] backdrop-blur-lg transition-all duration-300`}
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
         {/* LOGO */}
         <Link href="/" className="flex items-center">
           <Image
-            src="/DCERO_LOGO.svg"
-            alt="Deudas Cero"
-            width={140}
+            src="/lex.png"
+            alt="LexMatch"
+            width={136}
             height={40}
             priority
           />
@@ -104,9 +92,9 @@ export default function Navbar() {
         {/* CTA Escritorio con degradado elegante */}
         <Link
           href="/evaluacion"
-          className="hidden rounded-lg bg-gradient-to-r from-[#0B2C5E] via-[#087F9C] to-[#07D4C0] px-5 py-2 text-sm font-semibold text-white shadow-sm transition-transform hover:scale-105 md:block"
+          className="hidden rounded-full bg-gradient-to-r from-[#1f2d5c] via-[#3358ff] to-[#2bb8d6] px-5 py-2 text-sm font-semibold text-white shadow-lg transition-transform hover:scale-105 md:block"
         >
-          Evaluación Gratuita
+          Habla con LexMatch
         </Link>
 
         {/* Botón de Menú Móvil */}
@@ -144,9 +132,9 @@ export default function Navbar() {
               {/* CTA Móvil con degradado elegante */}
               <Link
                 href="/evaluacion"
-                className="mt-6 rounded-lg bg-gradient-to-r from-[#0B2C5E] via-[#087F9C] to-[#07D4C0] px-8 py-3 font-semibold text-white shadow-sm"
+                className="mt-6 rounded-full bg-gradient-to-r from-[#1f2d5c] via-[#3358ff] to-[#2bb8d6] px-8 py-3 font-semibold text-white shadow-lg"
               >
-                Evaluación Gratuita
+                Habla con LexMatch
               </Link>
             </nav>
           </motion.div>

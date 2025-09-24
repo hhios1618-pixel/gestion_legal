@@ -23,32 +23,32 @@ type Method = {
 
 const METHODS: Method[] = [
   {
-    title: "Defensa por Prescripción",
-    desc: "Nuestra principal especialidad. Argumentamos legalmente ante tribunales para que se declare prescrita la acción de cobro, extinguiendo la obligación de forma definitiva y permanente.",
+    title: "Familia y personas",
+    desc: "Abogados especializados en mediaciones, acuerdos parentales y sucesiones, con coordinación emocionalmente responsable y reportes LexMatch.",
     icon: Scale,
-    metrics: { complexity: "Alta", time: "3-6 Meses", success: "98%" },
-    cta: "Evaluar caso para Prescripción"
+    metrics: { complexity: "Alta", time: "30-90 Días", success: "94%" },
+    cta: "Solicitar propuesta familiar"
   },
   {
-    title: "Negociación Estratégica",
-    desc: "Representamos tus intereses ante los acreedores para alcanzar acuerdos de pago convenientes, con condonaciones de intereses y plazos que se ajusten a tu realidad.",
+    title: "Empresas y contratos",
+    desc: "Redacción, revisión y negociación de contratos comerciales con equipos que explican riesgos y compromisos en lenguaje claro.",
     icon: Handshake,
-    metrics: { complexity: "Media", time: "1-2 Meses", success: "95%" },
-    cta: "Iniciar una Negociación"
+    metrics: { complexity: "Media", time: "15-60 Días", success: "95%" },
+    cta: "Fortalecer mi operación"
   },
   {
-    title: "Defensa en Juicios",
-    desc: "Si ya enfrentas una demanda, nuestro equipo de litigantes interviene con defensas y tercerías para proteger tu patrimonio y buscar la mejor resolución posible.",
+    title: "Laboral y talento",
+    desc: "Representación de trabajadores y asesoría a empleadores con matrices de cumplimiento, prevención y defensa estratégica.",
     icon: ShieldCheck,
-    metrics: { complexity: "Alta", time: "Variable", success: "92%" },
-    cta: "Solicitar Defensa Judicial"
+    metrics: { complexity: "Alta", time: "Variable", success: "91%" },
+    cta: "Evaluar apoyo laboral"
   },
   {
-    title: "Aclaración y Rectificación",
-    desc: "Un proceso rápido y eficiente para corregir información errónea o deudas ya pagadas que aún afectan negativamente tus registros comerciales.",
+    title: "Litigios estratégicos",
+    desc: "Acciones judiciales y acuerdos extrajudiciales con equipos que coordinan peritajes, minutas y audiencias sin que pierdas visibilidad.",
     icon: FileCheck,
-    metrics: { complexity: "Baja", time: "30 Días", success: "100%" },
-    cta: "Rectificar mis Registros"
+    metrics: { complexity: "Media", time: "45-120 Días", success: "88%" },
+    cta: "Diseñar plan de litigio"
   },
 ];
 
@@ -61,21 +61,29 @@ export default function Benefits() {
   const getChartData = (metrics: Method["metrics"]) => {
     // Lógica simple para visualizar datos cualitativos en un gráfico
     const complexityValue = { 'Alta': 3, 'Media': 2, 'Baja': 1 }[metrics.complexity] || 1;
-    const timeValue = { '3-6 Meses': 3, '1-2 Meses': 2, '30 Días': 1, 'Variable': 1 }[metrics.time] || 1;
+    const timeValue = {
+      '3-6 Meses': 3,
+      '1-2 Meses': 2,
+      '30 Días': 1,
+      '30-90 Días': 2,
+      '15-60 Días': 2,
+      '45-120 Días': 3,
+      'Variable': 1,
+    }[metrics.time] || 1;
     const successValue = parseFloat(metrics.success) / 100 * 3;
     
     return [
-      { title: 'Complejidad', value: complexityValue, color: '#3b82f6' }, // blue
-      { title: 'Tiempo', value: timeValue, color: '#8b5cf6' }, // violet
-      { title: 'Éxito', value: successValue, color: '#10b981' }, // emerald
+      { title: 'Complejidad', value: complexityValue, color: '#3358ff' },
+      { title: 'Tiempo', value: timeValue, color: '#2bb8d6' },
+      { title: 'Éxito', value: successValue, color: '#f6a44c' },
     ];
   };
   
   const chartData = getChartData(activeMethod.metrics);
 
   return (
-    <section className="relative overflow-hidden bg-slate-900 py-24 sm:py-32">
-      <div className="absolute inset-0 bg-grid-slate-800 [mask-image:linear-gradient(to_bottom,white_10%,transparent_100%)]"></div>
+    <section className="relative overflow-hidden bg-[#0c1733] py-24 sm:py-32">
+      <div className="absolute inset-0 bg-[radial-gradient(1100px_600px_at_10%_-20%,rgba(51,88,255,0.22),transparent),radial-gradient(900px_520px_at_80%_120%,rgba(43,184,214,0.18),transparent)]"></div>
 
       <motion.div
         initial={{ opacity: 0 }}
@@ -85,12 +93,12 @@ export default function Benefits() {
         className="mx-auto max-w-7xl px-6 lg:px-8"
       >
         <div className="text-center">
-          <h2 className="text-base font-semibold leading-7 text-blue-400">Nuestra Metodología</h2>
-          <p className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Caminos estratégicos hacia tu libertad financiera
+          <h2 className="text-base font-semibold uppercase tracking-[0.4em] text-[#9fb2ff]">Servicios LexMatch</h2>
+          <p className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Expertos legales con coordinación garantizada
           </p>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-            Cada caso es único. Selecciona una de nuestras estrategias para conocer en detalle cómo podemos devolverte la tranquilidad que mereces.
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-[#cbd6ff]">
+            Seleccionamos firmas con la mezcla correcta de experiencia, disponibilidad y habilidades comunicacionales. Cada especialidad cuenta con métricas y seguimiento directo del equipo LexMatch.
           </p>
         </div>
 
@@ -112,20 +120,20 @@ export default function Benefits() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }}
                 exit={{ opacity: 0, y: -30, transition: { duration: 0.3, ease: "easeIn" } }}
-                className="relative h-full w-full rounded-2xl bg-slate-800/50 p-8 shadow-2xl ring-1 ring-white/10 backdrop-blur-lg flex flex-col"
+                className="relative flex h-full w-full flex-col rounded-2xl bg-white/8 p-8 shadow-[0_28px_60px_rgba(10,16,32,0.45)] ring-1 ring-white/15 backdrop-blur-xl"
               >
                 <div>
                   <div className="flex items-start justify-between">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br from-[#3358ff] to-[#2bb8d6] text-white shadow-lg">
                       <ActiveIcon className="h-8 w-8" />
                     </div>
                   </div>
                   <h3 className="mt-6 text-2xl font-bold text-white">{activeMethod.title}</h3>
-                  <p className="mt-3 text-slate-300 leading-relaxed">{activeMethod.desc}</p>
+                  <p className="mt-3 text-[#e2e6f2] leading-relaxed">{activeMethod.desc}</p>
                 </div>
                 
                 <div className="my-8 flex-grow flex items-center justify-center gap-6 md:gap-12">
-                  <div className="relative w-32 h-32 md:w-36 md:h-36">
+                  <div className="relative h-32 w-32 md:h-36 md:w-36">
                     <PieChart
                       data={chartData}
                       lineWidth={15}
@@ -135,13 +143,13 @@ export default function Benefits() {
                       animationEasing="ease-out"
                     />
                     <div className="absolute inset-0 flex items-center justify-center text-center">
-                       <p className="text-xs font-semibold text-slate-400">Métricas</p>
+                       <p className="text-xs font-semibold text-[#9fb2ff]">Métricas</p>
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <MetricItem icon={BrainCircuit} label="Complejidad" value={activeMethod.metrics.complexity} color="#3b82f6" />
-                    <MetricItem icon={Clock} label="Tiempo Estimado" value={activeMethod.metrics.time} color="#8b5cf6" />
-                    <MetricItem icon={BarChart} label="Tasa de Éxito" value={activeMethod.metrics.success} color="#10b981" />
+                    <MetricItem icon={BrainCircuit} label="Complejidad" value={activeMethod.metrics.complexity} color="#3358ff" />
+                    <MetricItem icon={Clock} label="Tiempo estimado" value={activeMethod.metrics.time} color="#2bb8d6" />
+                    <MetricItem icon={BarChart} label="Casos exitosos" value={activeMethod.metrics.success} color="#f6a44c" />
                   </div>
                 </div>
 
@@ -161,13 +169,9 @@ export default function Benefits() {
 
       {/* --- ESTILOS DEL BOTÓN CORREGIDO --- */}
       <style jsx global>{`
-        .bg-grid-slate-800 { background-image: linear-gradient(white 1px, transparent 1px), linear-gradient(to right, white 1px, transparent 1px); background-size: 4rem 4rem; opacity: 0.05; animation: pan 20s linear infinite; }
-        @keyframes pan { from { background-position: 0 0; } to { background-position: 4rem 0; } }
-        
-        /* Estilo del botón ajustado */
-        .wow-button-small { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem 1.25rem; font-weight: 600; border-radius: 0.5rem; transition: all 0.3s ease; font-size: 0.875rem; /* 14px */ }
-        .primary-button { background-color: white; color: #020617; }
-        .primary-button:hover { background-color: #e2e8f0; transform: scale(1.02); }
+        .wow-button-small { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem 1.25rem; font-weight: 600; border-radius: 999px; transition: all 0.3s ease; font-size: 0.875rem; }
+        .primary-button { background-image: linear-gradient(135deg, #ffffff, #dfe6ff); color: #1f2d5c; box-shadow: 0 12px 30px rgba(18, 31, 70, 0.35); }
+        .primary-button:hover { background-image: linear-gradient(135deg, #ffffff, #cfd9ff); transform: scale(1.03); }
       `}</style>
     </section>
   );
@@ -183,13 +187,19 @@ function MethodSelector({ method, isSelected, onClick }: { method: Method, isSel
       animate={isSelected ? "active" : "inactive"}
       className="relative flex w-full items-start gap-4 rounded-xl p-4 text-left transition-colors duration-300"
     >
-      <motion.div className="absolute inset-0 rounded-xl" variants={{ active: { backgroundColor: "rgba(30, 41, 59, 0.7)", scale: 1.02 }, inactive: { backgroundColor: "rgba(30, 41, 59, 0.2)", scale: 1 }}} />
-      <div className={`relative z-10 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg transition-colors duration-300 ${isSelected ? 'bg-blue-600' : 'bg-slate-700'}`}>
+      <motion.div
+        className="absolute inset-0 rounded-xl"
+        variants={{
+          active: { backgroundColor: "rgba(255,255,255,0.12)", scale: 1.02 },
+          inactive: { backgroundColor: "rgba(255,255,255,0.04)", scale: 1 }
+        }}
+      />
+      <div className={`relative z-10 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg transition-colors duration-300 ${isSelected ? 'bg-gradient-to-br from-[#3358ff] to-[#2bb8d6]' : 'bg-white/10'}`}>
         <Icon className="h-6 w-6 text-white" />
       </div>
       <div className="relative z-10">
-        <h4 className={`font-semibold transition-colors duration-300 ${isSelected ? 'text-white' : 'text-slate-200'}`}>{method.title}</h4>
-        <p className={`mt-1 text-sm leading-snug transition-colors duration-300 ${isSelected ? 'text-slate-300' : 'text-slate-400'}`}>
+        <h4 className={`font-semibold transition-colors duration-300 ${isSelected ? 'text-white' : 'text-[#cbd6ff]'}`}>{method.title}</h4>
+        <p className={`mt-1 text-sm leading-snug transition-colors duration-300 ${isSelected ? 'text-[#e2e6f2]' : 'text-[#9fb2ff]'}`}>
           {method.desc.substring(0, 60)}...
         </p>
       </div>

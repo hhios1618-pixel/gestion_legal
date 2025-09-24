@@ -9,9 +9,9 @@ import RouteGate from "@/app/components/RouteGate";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "DeudasCero — Sal de DICOM con respaldo legal",
+  title: "LexMatch — Operaciones legales con respuesta garantizada",
   description:
-    "Soluciones legales para eliminar DICOM y ordenar tus deudas, con trazabilidad y asesoría experta.",
+    "Plataforma legal que coordina clientes y estudios jurídicos verificados en Chile, con seguimiento centralizado, tiempos pactados y soporte de LexMatch en cada etapa.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

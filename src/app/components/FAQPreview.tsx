@@ -8,20 +8,20 @@ import { ChevronDown, ShieldCheck, HelpCircle } from "lucide-react";
 // Contenido mejorado
 const faqs = [
   {
-    q: "¿Cuál es el plazo estimado para la eliminación de mis registros de DICOM?",
-    a: "El plazo varía según la causal de la deuda. En casos de prescripción, el proceso judicial y administrativo puede tomar entre 60 y 120 días. Para aclaraciones o regularizaciones, el tiempo es considerablemente menor. Desde la evaluación inicial, le entregaremos un itinerario claro y realista.",
+    q: "¿Cuánto tarda la asignación de un abogado?",
+    a: "Entre 2 y 6 horas hábiles. Validamos disponibilidad, especialidad y posibles conflictos de interés antes de enviar propuestas para que elijas.",
   },
   {
-    q: "¿Existen costos iniciales para evaluar mi caso?",
-    a: "No. La evaluación de su caso es completamente gratuita y sin compromiso.",
+    q: "¿Debo pagar algo para recibir propuestas?",
+    a: "No. La recopilación de antecedentes y el matching inicial no tienen costo. Solo contratas cuando aceptas la propuesta del abogado.",
   },
   {
-    q: "¿Ofrecen sus servicios legales en todo el territorio nacional?",
-    a: "Absolutamente. Nuestro estudio cuenta con una plataforma digital segura que nos permite representar a clientes en todo Chile con la misma eficiencia que una atención presencial. Gestionamos toda la documentación y comunicación de forma remota, optimizando su tiempo y recursos.",
+    q: "¿Puedo cambiar de profesional si no estoy conforme?",
+    a: "Sí. Nuestro equipo de soporte reasigna tu caso y protege el trabajo ya realizado. Conservamos bitácoras y documentos en el panel para evitar retrabajos.",
   },
   {
-    q: "¿Cómo garantizan la confidencialidad de mi información sensible?",
-    a: "La seguridad de su información es un pilar fundamental. Cumplimos rigurosamente con la Ley 19.628 sobre Protección de la Vida Privada y aplicamos protocolos de encriptación de datos. Todo su caso está protegido por el secreto profesional de nuestros abogados.",
+    q: "¿Qué seguridad tiene mi información?",
+    a: "Utilizamos cifrado en tránsito y en reposo, controles de acceso y registro de auditoría. Todos los abogados firman acuerdos de confidencialidad y secreto profesional.",
   },
 ];
 
@@ -36,14 +36,14 @@ function AccordionItem({
   onClick: () => void;
 }) {
   return (
-    <div className="border-b border-slate-200 last:border-b-0">
+    <div className="border-b border-[#e2e6f2] last:border-b-0">
       <button
         onClick={onClick}
         className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
       >
         <span className="text-base font-semibold text-slate-800">{faq.q}</span>
         <ChevronDown
-          className={`h-5 w-5 text-blue-600 transition-transform duration-300 ${
+          className={`h-5 w-5 text-[#3358ff] transition-transform duration-300 ${
             isOpen ? "rotate-180" : ""
           }`}
         />
@@ -82,17 +82,16 @@ export default function FAQPreview() {
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-6 lg:grid-cols-3 lg:gap-8 lg:px-8">
         {/* Columna de Título y Contexto */}
         <div className="lg:col-span-1">
-          <HelpCircle className="h-10 w-10 text-blue-700" />
+          <HelpCircle className="h-10 w-10 text-[#3358ff]" />
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
             Respuestas Claras
           </h2>
           <p className="mt-4 text-lg text-slate-600">
-            Entendemos sus inquietudes. Aquí resolvemos las dudas más comunes con
-            la transparencia y profesionalismo que nos caracteriza.
+            Entendemos lo que significa delegar tu operación legal. Aquí respondemos las preguntas clave con la transparencia que guía cada caso LexMatch.
           </p>
            <Link
               href="/faq"
-              className="mt-8 inline-flex items-center gap-2 rounded-md bg-blue-700 px-5 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-blue-800"
+              className="mt-8 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#1f2d5c] via-[#3358ff] to-[#2bb8d6] px-5 py-3 text-base font-semibold text-white shadow-lg transition-transform hover:scale-105"
             >
               Ver todas las preguntas
               <span aria-hidden="true">→</span>
@@ -101,7 +100,7 @@ export default function FAQPreview() {
 
         {/* Columna de Preguntas Frecuentes */}
         <div className="lg:col-span-2">
-          <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="rounded-xl border border-[#dbe3ff] bg-white shadow-[0_16px_45px_rgba(15,23,42,0.08)]">
             {faqs.map((faq, i) => (
               <AccordionItem
                 key={i}

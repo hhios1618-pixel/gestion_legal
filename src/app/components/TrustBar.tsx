@@ -8,18 +8,18 @@ import { Scale, FileSignature, Timer } from 'lucide-react';
 const trustPillars = [
   {
     icon: Scale,
-    title: "Respaldo Jurídico Integral",
-    description: "Cada estrategia es diseñada y ejecutada por un equipo de abogados expertos en derecho de deudas."
+    title: "Profesionales auditados",
+    description: "Verificamos experiencia, referencias y capacidad operativa de cada estudio antes de incorporarlo a la red LexMatch."
   },
   {
     icon: FileSignature,
-    title: "Contratos y Acuerdos Formales",
-    description: "Toda nuestra relación y gestión se formaliza por escrito, garantizando transparencia y seguridad."
+    title: "Mandatos bajo LexMatch",
+    description: "Firmas propuestas con honorarios, entregables y SLA visibles. Nuestro equipo monitorea cada compromiso." 
   },
   {
     icon: Timer,
-    title: "Trazabilidad del Caso 24/7",
-    description: "Acceso a nuestra plataforma digital para monitorear el avance de tu caso en tiempo real, cuando lo necesites."
+    title: "Respuesta garantizada",
+    description: "Si un estudio se retrasa, LexMatch interviene, escala o reasigna. Tu caso nunca se queda sin seguimiento." 
   }
 ];
 
@@ -49,7 +49,7 @@ const lineVariants: Variants = {
 
 export default function TrustBar() {
   return (
-    <section className="bg-slate-900 text-white py-24 sm:py-32">
+    <section className="bg-[#0f1b38] py-24 text-white sm:py-32">
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -60,10 +60,10 @@ export default function TrustBar() {
         {/* --- NUEVO BLOQUE DE ENCABEZADO --- */}
         <motion.div variants={itemVariants} className="text-center mb-20">
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                Los Pilares de tu Tranquilidad
+                La garantía operativa de LexMatch
             </h2>
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-                Construimos cada caso sobre una base de principios inquebrantables. Estos son los tres pilares que garantizan la seriedad y eficacia de nuestro trabajo.
+                Procesos diseñados para que tu asunto legal avance con visibilidad total. Nosotros centralizamos la comunicación, el estudio se concentra en la estrategia.
             </p>
         </motion.div>
         {/* --- FIN DEL NUEVO BLOQUE --- */}
@@ -99,11 +99,11 @@ function PillarCard({ pillar, alignment }: { pillar: typeof trustPillars[0], ali
 
   return (
     <motion.div variants={pillarCardVariants} className={`group relative flex flex-col items-center ${itemsAlign}`}>
-      <div className="grid h-16 w-16 place-items-center rounded-xl bg-slate-800 ring-1 ring-slate-700 transition-all duration-300 group-hover:scale-110 group-hover:bg-blue-900/50 group-hover:ring-blue-500">
-        <Icon className="h-8 w-8 text-slate-300 transition-colors group-hover:text-white" />
+      <div className="grid h-16 w-16 place-items-center rounded-xl bg-white/10 ring-1 ring-white/20 transition-all duration-300 group-hover:scale-110 group-hover:bg-gradient-to-br group-hover:from-[#3358ff] group-hover:to-[#2bb8d6] group-hover:ring-[#9fb2ff]">
+        <Icon className="h-8 w-8 text-[#9fb2ff] transition-colors group-hover:text-white" />
       </div>
-      <h3 className={`mt-6 text-lg font-bold text-slate-100 ${textAlign}`}>{pillar.title}</h3>
-      <p className={`mt-2 text-slate-400 ${textAlign}`}>{pillar.description}</p>
+      <h3 className={`mt-6 text-lg font-bold text-white ${textAlign}`}>{pillar.title}</h3>
+      <p className={`mt-2 text-slate-300 ${textAlign}`}>{pillar.description}</p>
     </motion.div>
   );
 }

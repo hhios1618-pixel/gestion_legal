@@ -19,14 +19,14 @@ export default function Sidebar() {
       className="sticky top-0 h-screen select-none border-r border-slate-200 bg-white"
       style={{
         background:
-          'radial-gradient(700px 300px at 20% -10%, rgba(17,205,239,0.06),transparent 40%), radial-gradient(500px 220px at 100% 0%, rgba(18,113,255,0.05),transparent 45%)',
+          'radial-gradient(700px 320px at 20% -10%, rgba(51,88,255,0.08),transparent 45%), radial-gradient(480px 220px at 100% 0%, rgba(43,184,214,0.08),transparent 50%)',
       }}
     >
       {/* Marca */}
       <div className="flex items-center gap-2 px-5 pb-3 pt-6">
-        <div className="h-7 w-7 rounded-md bg-gradient-to-tr from-sky-500 to-blue-600 shadow-sm" />
+        <div className="h-7 w-7 rounded-md bg-gradient-to-tr from-[#1f2d5c] via-[#3358ff] to-[#2bb8d6] shadow-sm" />
         <div className="leading-tight">
-          <div className="text-[13px] font-semibold tracking-tight text-slate-900">DeudaCero</div>
+          <div className="text-[13px] font-semibold tracking-tight text-slate-900">LexMatch</div>
           <div className="text-[11px] text-slate-500">Control Center</div>
         </div>
       </div>

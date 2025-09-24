@@ -36,19 +36,19 @@ export default function Footer() {
   return (
     <footer className="bg-white">
       {/* 1. CTA */}
-      <div className="bg-slate-50">
+      <div className="bg-[#eef1f9]">
         <div className="mx-auto max-w-7xl px-6 py-12 lg:flex lg:items-center lg:justify-between lg:px-8">
           <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            ¿Listo para dar el primer paso?
+            ¿Listo para que LexMatch coordine tu caso legal?
             <br />
-            <span className="text-blue-700">Recupere su tranquilidad financiera.</span>
+            <span className="text-[#3358ff]">Respuestas garantizadas en menos de 6 horas hábiles.</span>
           </h2>
           <div className="mt-8 flex items-center gap-x-6 lg:mt-0 lg:flex-shrink-0">
             <Link
               href="/evaluacion"
-              className="rounded-md bg-blue-700 px-5 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+              className="rounded-full bg-gradient-to-r from-[#1f2d5c] via-[#3358ff] to-[#2bb8d6] px-5 py-3 text-base font-semibold text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1f2d5c]"
             >
-              Iniciar Evaluación Gratuita
+              Comenzar con LexMatch
             </Link>
           </div>
         </div>
@@ -60,10 +60,10 @@ export default function Footer() {
           {/* Marca */}
           <div className="space-y-4">
             <Link href="/" className="text-2xl font-extrabold tracking-tight text-slate-900">
-              DEUDASCERO
+              LEXMATCH
             </Link>
             <p className="text-sm leading-6 text-slate-600">
-              Defensa legal experta para la eliminación de deudas. Seriedad, claridad y resultados garantizados.
+              Plataforma que enlaza clientes y estudios jurídicos verificados en Chile. Transparencia, seguimiento digital y acompañamiento permanente de nuestro equipo de coordinación.
             </p>
             <div className="flex space-x-4">
               <Link href="#" className="text-slate-500 hover:text-blue-700" aria-label="LinkedIn">
@@ -103,7 +103,7 @@ export default function Footer() {
                   </li>
                   <li className="flex items-start gap-3">
                     <Mail className="h-5 w-5 flex-shrink-0 text-slate-500 mt-0.5" />
-                    <span className="text-sm leading-6 text-slate-600">contacto@deudascero.cl</span>
+                    <span className="text-sm leading-6 text-slate-600">contacto@lexmatch.cl</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <Clock className="h-5 w-5 flex-shrink-0 text-slate-500 mt-0.5" />
@@ -133,7 +133,7 @@ export default function Footer() {
               <strong>Importante:</strong> toda la información publicada en este sitio (plazos, procesos, resultados y
               costos) corresponde a ejemplos y promedios referenciales. Cada caso es evaluado de manera particular y los
               resultados dependen de los antecedentes y circunstancias específicas del cliente. <strong>No garantizamos
-              tiempos ni resultados</strong> idénticos para todos los casos ni la resolución de deudas en un plazo determinado.
+              tiempos ni resultados</strong> idénticos para todos los casos ni la resolución de controversias en un plazo determinado.
               Para una propuesta y estimación formal, es imprescindible una evaluación individual.
             </p>
           </div>
@@ -143,7 +143,7 @@ export default function Footer() {
       {/* 3. Copyright */}
       <div className="border-t border-slate-200 bg-white py-8">
         <p className="text-center text-xs leading-5 text-slate-500">
-          © {new Date().getFullYear()} DeudasCero SpA. Todos los derechos reservados.
+          © {new Date().getFullYear()} LexMatch SpA. Todos los derechos reservados.
         </p>
       </div>
 
@@ -189,7 +189,7 @@ export default function Footer() {
 
               <Section n="1. Objeto">
                 Este documento regula el uso del formulario de contacto/disposición de datos personales disponible en el
-                sitio web <strong>www.deudascero.cl</strong> (en adelante, el “Sitio”), así como el tratamiento y
+                sitio web <strong>www.lexmatch.cl</strong> (en adelante, el “Sitio”), así como el tratamiento y
                 protección de los datos personales proporcionados por los usuarios conforme a la legislación vigente en
                 Chile.
               </Section>
